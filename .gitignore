@@ -1,0 +1,181 @@
+# ==========================================
+
+# Visual Studio / .NET
+
+# ==========================================
+
+.vs/
+.vscode/
+
+**/bin/
+**/obj/
+
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Visual Studio cache
+
+TestResults/
+*.trx
+
+# Build output
+
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa]RM/
+[Aa]RM64/
+
+# ==========================================
+
+# .NET
+
+# ==========================================
+
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# NuGet
+
+*.nupkg
+*.snupkg
+.nuget/
+
+# NuGet packages directory
+
+**/packages/
+
+# ==========================================
+
+# ASP.NET Core
+
+# ==========================================
+
+# Local development configuration
+
+appsettings.Local.json
+
+# User secrets
+
+secrets.json
+
+# HTTPS development certificates
+
+*.pfx
+
+# ==========================================
+
+# React / Node / Vite
+
+# ==========================================
+
+# Dependencies
+
+node_modules/
+
+# Production build
+
+dist/
+build/
+
+# Vite cache
+
+.vite/
+
+# npm logs
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ==========================================
+
+# Environment files
+
+# ==========================================
+
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Keep example environment files
+
+!.env.example
+
+# ==========================================
+
+# OS generated files
+
+# ==========================================
+
+# Windows
+
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+
+# macOS
+
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# ==========================================
+
+# Logs
+
+# ==========================================
+
+*.log
+logs/
+
+# ==========================================
+
+# Coverage
+
+# ==========================================
+
+coverage/
+.coverage
+*.coverage
+*.coveragexml
+
+# ==========================================
+
+# Temporary files
+
+# ==========================================
+
+*.tmp
+*.temp
+*.bak
+*.swp
+*.cache
+
+# ==========================================
+
+# Database / local development
+
+# ==========================================
+
+*.mdf
+*.ldf
+
+# ==========================================
+
+# Rider / JetBrains
+
+# ==========================================
+
+.idea/
+*.sln.iml
+*.DotSettings.user

@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Antheia.Api/Antheia.Api.csproj" />
+    <Project Path="src/Antheia.Application/Antheia.Application.csproj" />
+    <Project Path="src/Antheia.Domain/Antheia.Domain.csproj" />
+    <Project Path="src/Antheia.Infrastructure/Antheia.Infrastructure.csproj" />
+  </Folder>
+</Solution>
