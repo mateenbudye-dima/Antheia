@@ -16,16 +16,23 @@ import {
   Typography,
   Button,
   Avatar,
+  useTheme,
+  Tooltip,
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import LogoutIcon from '@mui/icons-material/Logout';
 import PersonIcon from '@mui/icons-material/Person';
 import { useAuth } from '../hooks/useAuth';
+import { useColorMode } from '../context/ColorModeContext';
+import Brightness4Icon from '@mui/icons-material/Brightness4';
+import Brightness7Icon from '@mui/icons-material/Brightness7';
 
 const DRAWER_WIDTH = 240;
 
 export const Layout: React.FC = () => {
+  const theme = useTheme();
+  const { toggleColorMode } = useColorMode();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -108,7 +115,11 @@ export const Layout: React.FC = () => {
               <Typography variant="body2" sx={{ display: { xs: 'none', md: 'block' } }}>
                 Welcome, <strong>{user.username}</strong>
               </Typography>
-              
+              <Tooltip title={`Switch to ${theme.palette.mode === 'dark' ? 'light' : 'dark'} mode`}>
+                <IconButton onClick={toggleColorMode} color="inherit" sx={{ ml: 1 }}>
+                    {theme.palette.mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
+                </IconButton>
+              </Tooltip>
               <Button
                 color="inherit"
                 startIcon={<LogoutIcon />}
