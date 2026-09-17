@@ -1,11 +1,12 @@
 using Antheia.Api.Extensions;
+using Antheia.Application;
+using Antheia.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 const string reactAppCorsPolicy = "AllowReactApp";
 
-builder.Services.AddDatabaseContext(builder.Configuration)
-                .AddApplicationServices()
-                .AddInfrastructureServices()
+builder.Services.AddApplicationServices()
+                .AddInfrastructureServices(builder.Configuration)
                 .AddJwtAuthentication(builder.Configuration)
                 .AddCorsPolicy(builder.Configuration, reactAppCorsPolicy);
 

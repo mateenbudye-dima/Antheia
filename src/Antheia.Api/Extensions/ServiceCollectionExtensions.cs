@@ -2,6 +2,7 @@
 using Antheia.Infrastructure.Data;
 using Antheia.Infrastructure.Repositories;
 using Antheia.Infrastructure.Security;
+using Antheia.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -12,30 +13,6 @@ namespace Antheia.Api.Extensions;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddDatabaseContext(this IServiceCollection services, IConfiguration configuration)
-    {
-        var connectionString = configuration.GetConnectionString("DefaultConnection")
-                                ?? throw new InvalidOperationException(
-                                    "Connection string 'DefaultConnection' was not found.");
-
-        services.AddDbContext<LegacyMembershipDbContext>(options =>
-            options.UseSqlServer(connectionString));
-
-        return services;
-    }
-
-    public static IServiceCollection AddApplicationServices(this IServiceCollection services)
-    {
-        return services;
-    }
-    public static IServiceCollection AddInfrastructureServices(this IServiceCollection services)
-    {
-        services.AddScoped<IUserRepository, UserRepository>();
-        services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
-
-        return services;
-    }
-
     public static IServiceCollection AddJwtAuthentication(this IServiceCollection services, IConfiguration configuration)
     {
         var jwtSettings = configuration.GetSection("JwtSettings");

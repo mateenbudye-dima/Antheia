@@ -1,6 +1,33 @@
-﻿namespace Antheia.Application;
+﻿namespace Antheia.Infrastructure;
 
-public class Class1
+using Antheia.Application.Interfaces;
+using Antheia.Infrastructure.Data;
+using Antheia.Infrastructure.Repositories;
+using Antheia.Infrastructure.Security;
+using Antheia.Infrastructure.Services;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+
+public static class DependencyInjection
 {
+    public static IServiceCollection AddInfrastructureServices(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        // 1. Database Context
+        services.AddDbContext<LegacyMembershipDbContext>(options =>
+            options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
 
+        // 2. Repositories
+        services.AddScoped<IUserRepository, UserRepository>();
+
+        // 3. Security & Infrastructure Utilities
+        services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
+
+        // 4. Application Service Implementations
+        services.AddScoped<IAuthService, AuthService>();
+
+        return services;
+    }
 }
