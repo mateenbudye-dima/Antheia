@@ -1,14 +1,21 @@
 import React from 'react';
+import { Container, Typography, Paper } from '@mui/material';
 import { useAuth } from '../hooks/useAuth';
 
 export const Dashboard: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
 
   return (
-    <div>
-      <h3>Welcome, {user?.username}!</h3>
-      <p>Roles: {user?.roles.join(', ')}</p>
-      <button onClick={logout}>Log Out</button>
-    </div>
+    <Container maxWidth="lg">
+      <Paper elevation={1} sx={{ p: 4, borderRadius: 2 }}>
+        <Typography variant="h4" gutterBottom>
+          Dashboard Overview
+        </Typography>
+        <Typography variant="body1" color="text.secondary">
+          Welcome back, {user?.username}. You have access under the role(s):{' '}
+          <strong>{user?.roles?.join(', ')}</strong>.
+        </Typography>
+      </Paper>
+    </Container>
   );
 };

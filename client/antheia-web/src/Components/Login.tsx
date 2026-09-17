@@ -1,62 +1,92 @@
-import React, { useEffect, useState } from 'react';
-import { isAxiosError } from 'axios';
-import { login } from '../services/authService';
-import { useLocation, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import {
+  Container,
+  Paper,
+  Typography,
+  TextField,
+  Button,
+  Box,
+  Alert,
+  Avatar,
+} from '@mui/material';
+import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import { useAuth } from '../hooks/useAuth';
 
 export const LoginForm: React.FC = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+
+  const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
-  const { isAuthenticated } = useAuth();
-
-  useEffect(() => {
-  if (isAuthenticated) {
-    navigate('/dashboard', { replace: true });
-  }
-  }, [isAuthenticated, navigate]);
-
-  // Retrieve origin route from state, or default to /dashboard
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/dashboard';
-  
-  const handleSubmit = async (e: React.SubmitEvent) => {
+
+  const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
 
     try {
       await login({ username, password });
-      navigate(from, { replace: true }); // Navigate back to requested page
+      navigate(from, { replace: true });
     } catch (err: unknown) {
-      if (isAxiosError(err)) {
-        // Safe access to Axios error response payload
-        setError(err.response?.data?.message || 'Invalid login credentials');
-      } else if (err instanceof Error) {
+      if (err instanceof Error) {
         setError(err.message);
-      } else {
-        setError('An unexpected error occurred');
       }
     }
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <input 
-        type="text" 
-        value={username} 
-        onChange={(e) => setUsername(e.target.value)} 
-        placeholder="Username" 
-      />
-      <input 
-        type="password" 
-        value={password} 
-        onChange={(e) => setPassword(e.target.value)} 
-        placeholder="Password" 
-      />
-      <button type="submit">Login</button>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-    </form>
+    <Container component="main" maxWidth="xs" sx={{ height: '100vh', display: 'flex', alignItems: 'center' }}>
+      <Paper elevation={3} sx={{ p: 4, width: '100%', borderRadius: 2, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <Avatar sx={{ m: 1, bgcolor: 'primary.main' }}>
+          <LockOutlinedIcon />
+        </Avatar>
+        <Typography component="h1" variant="h5" sx={{ mb: 3 }}>
+          Sign In
+        </Typography>
+
+        {error && (
+          <Alert severity="error" sx={{ width: '100%', mb: 2 }}>
+            {error}
+          </Alert>
+        )}
+
+        <Box component="form" onSubmit={handleSubmit} sx={{ width: '100%' }}>
+          <TextField
+            margin="normal"
+            required
+            fullWidth
+            id="username"
+            label="Username"
+            name="username"
+            autoFocus
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+          />
+          <TextField
+            margin="normal"
+            required
+            fullWidth
+            name="password"
+            label="Password"
+            type="password"
+            id="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <Button
+            type="submit"
+            fullWidth
+            variant="contained"
+            sx={{ mt: 3, mb: 2, py: 1.2 }}
+          >
+            Sign In
+          </Button>
+        </Box>
+      </Paper>
+    </Container>
   );
 };
