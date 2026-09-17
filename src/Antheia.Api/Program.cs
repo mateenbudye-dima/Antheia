@@ -15,6 +15,7 @@ builder.Services.AddSwaggerWithJwt();
 
 var app = builder.Build();
 
+app.UseCorrelationId();
 app.UseCustomExceptionHandler();
 app.UseSecurityHeaders();
 app.UseHttpsRedirection();

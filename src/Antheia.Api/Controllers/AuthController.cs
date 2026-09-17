@@ -11,11 +11,13 @@ namespace Antheia.Api.Controllers
     [Route("api/[controller]")]
     public class AuthController : ControllerBase
     {
+        private readonly ILogger<AuthController> _logger;
         private readonly IUserRepository _userRepository;
         private readonly IJwtTokenGenerator _jwtTokenGenerator;
 
-        public AuthController(IUserRepository userRepository, IJwtTokenGenerator jwtTokenGenerator)
+        public AuthController(ILogger<AuthController> logger, IUserRepository userRepository, IJwtTokenGenerator jwtTokenGenerator)
         {
+            _logger = logger;
             _userRepository = userRepository;
             _jwtTokenGenerator = jwtTokenGenerator;
         }
