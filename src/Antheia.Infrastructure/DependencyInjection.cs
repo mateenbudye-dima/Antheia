@@ -19,6 +19,12 @@ public static class DependencyInjection
         services.AddDbContext<LegacyMembershipDbContext>(options =>
             options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
 
+        // Add Antheia Application DbContext
+        services.AddDbContext<AntheiaDbContext>(options =>
+            options.UseSqlServer(configuration.GetConnectionString("AntheiaConnection")));
+
+        services.AddHttpContextAccessor();
+
         // 2. Repositories
         services.AddScoped<IUserRepository, UserRepository>();
 
@@ -27,6 +33,8 @@ public static class DependencyInjection
 
         // 4. Application Service Implementations
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<ITemplateService, TemplateService>();
+        services.AddScoped<ICurrentUserService, CurrentUserService>();
 
         return services;
     }

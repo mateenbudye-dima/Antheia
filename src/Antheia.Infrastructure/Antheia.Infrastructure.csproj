@@ -1,18 +1,24 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  
   <ItemGroup>
     <ProjectReference Include="..\Antheia.Application\Antheia.Application.csproj" />
     <ProjectReference Include="..\Antheia.Domain\Antheia.Domain.csproj" />
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Gives access to IHttpContextAccessor, AddHttpContextAccessor, and ASP.NET Core abstractions -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.12" />
   </ItemGroup>
 
-  <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
+ 
 
 </Project>
