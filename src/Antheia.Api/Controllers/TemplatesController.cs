@@ -18,7 +18,7 @@ public class TemplatesController : ControllerBase
     public async Task<IActionResult> CreateDraft()
     {
         // No private claim parsing methods needed!
-        var templateId = await _templateService.CreateDraftTemplateAsync();
-        return Ok(new { templateId });
+        var result = await _templateService.CreateDraftTemplateAsync();
+        return Ok(result);
     }
 }

@@ -7,7 +7,7 @@ namespace Antheia.Application.Interfaces;
 
 public interface ITemplateService
 {
-    Task<int> CreateDraftTemplateAsync();
+    Task<DraftTemplateCreatedDto> CreateDraftTemplateAsync();
     Task UpdateHeaderAsync(int templateId, UpdateTemplateHeaderDto dto);
     Task<int> AddSectionAsync(int templateId, AddSectionDto dto);
     Task DeleteSectionAsync(int sectionId);

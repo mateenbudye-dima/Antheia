@@ -18,24 +18,132 @@ public class TemplateService : ITemplateService
     }
 
     // 1. Creates an initial draft template record upon page initialization
-    public async Task<int> CreateDraftTemplateAsync()
+    public async Task<DraftTemplateCreatedDto> CreateDraftTemplateAsync()
     {
-        var template = new TemplateRecord
-        {
-            Title = "Untitled Template",
-            OrganizationId = _currentUser.OrganizationId,
-            AuthorId = _currentUser.UserId,
-            CreatedBy = _currentUser.UserId,
-            UpdatedBy = _currentUser.UserId,
-            CreatedDate = DateTime.UtcNow,
-            UpdatedDate = DateTime.UtcNow,
-            IsPublished = false,
-            IsActive = true
-        };
+        using var transaction = await _context.Database.BeginTransactionAsync();
 
-        _context.TemplateRecords.Add(template);
-        await _context.SaveChangesAsync();
-        return template.TemplateId;
+        try
+        {
+            // 1. Create Base Template Record
+            var template = new TemplateRecord
+            {
+                Title = "Untitled Template",
+                OrganizationId = _currentUser.OrganizationId,
+                AuthorId = _currentUser.UserId,
+                CreatedBy = _currentUser.UserId,
+                UpdatedBy = _currentUser.UserId,
+                CreatedDate = DateTime.UtcNow,
+                UpdatedDate = DateTime.UtcNow,
+                IsPublished = false,
+                IsActive = true
+            };
+
+            _context.TemplateRecords.Add(template);
+            await _context.SaveChangesAsync();
+
+            // 2. Create Default "Ingredients" Section (SectionTypeId = 1)
+            var ingredientsSection = new SectionRecord
+            {
+                ContainerId = template.TemplateId,
+                ContainerTypeId = 1, // 1 = Template Container
+                SectionTypeId = 1,
+                SectionTitle = "Ingredients",
+                SectionOrder = 1,
+                IsActive = true,
+                CreatedBy = _currentUser.UserId,
+                UpdatedBy = _currentUser.UserId,
+                CreatedDate = DateTime.UtcNow,
+                UpdatedDate = DateTime.UtcNow
+            };
+            _context.SectionRecords.Add(ingredientsSection);
+
+            // 3. Create Default "Preparation Method" Section (SectionTypeId = 2)
+            var prepSection = new SectionRecord
+            {
+                ContainerId = template.TemplateId,
+                ContainerTypeId = 1,
+                SectionTypeId = 2,
+                SectionTitle = "Preparation Method",
+                SectionOrder = 2,
+                IsActive = true,
+                CreatedBy = _currentUser.UserId,
+                UpdatedBy = _currentUser.UserId,
+                CreatedDate = DateTime.UtcNow,
+                UpdatedDate = DateTime.UtcNow
+            };
+            _context.SectionRecords.Add(prepSection);
+
+            // 4. Create Default "Evaluation" Section (SectionTypeId = 3)
+            var evalSection = new SectionRecord
+            {
+                ContainerId = template.TemplateId,
+                ContainerTypeId = 1,
+                SectionTypeId = 3,
+                SectionTitle = "Emulsifier Blend Evaluation",
+                SectionOrder = 3,
+                IsActive = true,
+                CreatedBy = _currentUser.UserId,
+                UpdatedBy = _currentUser.UserId,
+                CreatedDate = DateTime.UtcNow,
+                UpdatedDate = DateTime.UtcNow
+            };
+            _context.SectionRecords.Add(evalSection);
+
+            await _context.SaveChangesAsync(); // Generates SectionIds
+
+            // 5. Seed Default Evaluation Parameters
+            var defaultEvaluationParams = new[]
+            {
+                "Appearance",
+                "pH",
+                "Solubility",
+                "Compatibility",
+                "Emulsion Test",
+                "Hard Water Stability"
+            };
+
+            int paramTypeIndex = 1;
+            foreach (var paramName in defaultEvaluationParams)
+            {
+                _context.Evaluations.Add(new Evaluation
+                {
+                    SectionId = evalSection.SectionId,
+                    EvaluationParameterType = paramTypeIndex++,
+                    Specification = paramName,
+                    IsActive = true,
+                    CreatedBy = _currentUser.UserId,
+                    UpdatedBy = _currentUser.UserId,
+                    CreatedDate = DateTime.UtcNow,
+                    UpdatedDate = DateTime.UtcNow
+                });
+            }
+
+            // 6. Seed Default Preparation Method Container Record
+            _context.PreparationMethods.Add(new PreparationMethod
+            {
+                SectionId = prepSection.SectionId,
+                IsActive = true,
+                CreatedBy = _currentUser.UserId,
+                UpdatedBy = _currentUser.UserId,
+                CreatedDate = DateTime.UtcNow,
+                UpdatedDate = DateTime.UtcNow
+            });
+
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            return new DraftTemplateCreatedDto(
+                template.TemplateId,
+                ingredientsSection.SectionId,
+                prepSection.SectionId,
+                evalSection.SectionId
+            );
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
     }
 
     // 2. Patches title, objective, and description on blur or debounce

@@ -32,3 +32,10 @@ public record EvaluationDto(
     string? Specification,
     string? Status
 );
+
+public record DraftTemplateCreatedDto(
+    int TemplateId,
+    int IngredientsSectionId,
+    int PrepMethodSectionId,
+    int EvaluationSectionId
+);
