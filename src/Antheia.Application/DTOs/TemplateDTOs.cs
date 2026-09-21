@@ -39,3 +39,11 @@ public record DraftTemplateCreatedDto(
     int PrepMethodSectionId,
     int EvaluationSectionId
 );
+
+public record TemplateListItemDto(
+    int TemplateId,
+    string Title,
+    string? Objective,
+    DateTime UpdatedDate,
+    bool? IsPublished
+);

@@ -23,10 +23,11 @@ import MenuIcon from '@mui/icons-material/Menu';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import LogoutIcon from '@mui/icons-material/Logout';
 import PersonIcon from '@mui/icons-material/Person';
-import { useAuth } from '../hooks/useAuth';
-import { useColorMode } from '../context/ColorModeContext';
+import DescriptionIcon from '@mui/icons-material/Description';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
+import { useColorMode } from '../../context/ColorModeContext';
+import { useAuth } from '../../features/auth/hooks/useAuth';
 
 const DRAWER_WIDTH = 240;
 
@@ -44,8 +45,22 @@ export const Layout: React.FC = () => {
 
   const navItems = [
     { text: 'Dashboard', path: '/dashboard', icon: <DashboardIcon /> },
+    { text: 'Templates', path: '/templates', icon: <DescriptionIcon /> },
     { text: 'Profile', path: '/profile', icon: <PersonIcon /> },
   ];
+
+  // Helper to get active page title dynamically
+  const getCurrentTitle = () => {
+    const currentItem = navItems.find((item) =>
+      location.pathname.startsWith(item.path)
+    );
+    return currentItem ? currentItem.text : 'Antheia';
+  };
+
+  // Helper to check active state (including sub-routes like /templates/1/edit)
+  const isSelected = (path: string) => {
+    return location.pathname.startsWith(path);
+  };
 
   const drawerContent = (
     <Box sx={{ overflow: 'auto' }}>
@@ -56,26 +71,35 @@ export const Layout: React.FC = () => {
       </Toolbar>
       <Divider />
       <List>
-        {navItems.map((item) => (
-          <ListItem key={item.text} disablePadding>
-            <ListItemButton
-              selected={location.pathname === item.path}
-              onClick={() => {
-                navigate(item.path);
-                setMobileOpen(false);
-              }}
-            >
-              <ListItemIcon
-                sx={{
-                  color: location.pathname === item.path ? 'primary.main' : 'inherit',
+        {navItems.map((item) => {
+          const active = isSelected(item.path);
+          return (
+            <ListItem key={item.text} disablePadding>
+              <ListItemButton
+                selected={active}
+                onClick={() => {
+                  navigate(item.path);
+                  setMobileOpen(false);
                 }}
               >
-                {item.icon}
-              </ListItemIcon>
-              <ListItemText primary={item.text} />
-            </ListItemButton>
-          </ListItem>
-        ))}
+                <ListItemIcon
+                  sx={{
+                    color: active ? 'primary.main' : 'inherit',
+                  }}
+                >
+                  {item.icon}
+                </ListItemIcon>
+                <ListItemText
+                  primary={
+                    <Typography variant="body1" sx={{ fontWeight: active ? 'bold' : 'normal' }}>
+                      {item.text}
+                    </Typography>
+                  }
+                />
+              </ListItemButton>
+            </ListItem>
+          );
+        })}
       </List>
     </Box>
   );
@@ -102,30 +126,51 @@ export const Layout: React.FC = () => {
             <MenuIcon />
           </IconButton>
 
+          {/* Dynamic Title based on current route */}
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            Dashboard
+            {getCurrentTitle()}
           </Typography>
 
-          {/* User Welcome & Logout Controls */}
+          {/* User Welcome & Theme/Logout Controls */}
           {user && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-              <Avatar sx={{ bgcolor: 'secondary.main', width: 32, height: 32 }}>
-                {user.username.charAt(0).toUpperCase()}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Avatar
+                sx={{
+                  bgcolor: 'secondary.main',
+                  width: 32,
+                  height: 32,
+                  fontSize: '0.875rem',
+                }}
+              >
+                {user.username ? user.username.charAt(0).toUpperCase() : 'U'}
               </Avatar>
-              <Typography variant="body2" sx={{ display: { xs: 'none', md: 'block' } }}>
+              <Typography
+                variant="body2"
+                sx={{ display: { xs: 'none', sm: 'block' } }}
+              >
                 Welcome, <strong>{user.username}</strong>
               </Typography>
-              <Tooltip title={`Switch to ${theme.palette.mode === 'dark' ? 'light' : 'dark'} mode`}>
-                <IconButton onClick={toggleColorMode} color="inherit" sx={{ ml: 1 }}>
-                    {theme.palette.mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
+
+              <Tooltip
+                title={`Switch to ${
+                  theme.palette.mode === 'dark' ? 'light' : 'dark'
+                } mode`}
+              >
+                <IconButton onClick={toggleColorMode} color="inherit" size="small">
+                  {theme.palette.mode === 'dark' ? (
+                    <Brightness7Icon />
+                  ) : (
+                    <Brightness4Icon />
+                  )}
                 </IconButton>
               </Tooltip>
+
               <Button
                 color="inherit"
                 startIcon={<LogoutIcon />}
                 onClick={logout}
                 size="small"
-                sx={{ ml: 1 }}
+                sx={{ ml: 0.5 }}
               >
                 Logout
               </Button>
@@ -146,8 +191,11 @@ export const Layout: React.FC = () => {
           onClose={handleDrawerToggle}
           ModalProps={{ keepMounted: true }}
           sx={{
-            display: { xs: 'block', sm: 'block', md: 'none' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: DRAWER_WIDTH },
+            display: { xs: 'block', md: 'none' },
+            '& .MuiDrawer-paper': {
+              boxSizing: 'border-box',
+              width: DRAWER_WIDTH,
+            },
           }}
         >
           {drawerContent}
@@ -157,8 +205,11 @@ export const Layout: React.FC = () => {
         <Drawer
           variant="permanent"
           sx={{
-            display: { xs: 'none', sm: 'none', md: 'block' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: DRAWER_WIDTH },
+            display: { xs: 'none', md: 'block' },
+            '& .MuiDrawer-paper': {
+              boxSizing: 'border-box',
+              width: DRAWER_WIDTH,
+            },
           }}
           open
         >
@@ -171,7 +222,7 @@ export const Layout: React.FC = () => {
         component="main"
         sx={{
           flexGrow: 1,
-          p: 3,
+          p: { xs: 1.5, sm: 2, md: 3 }, // Responsive padding matching feature components
           width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
           minHeight: '100vh',
           backgroundColor: (theme) => theme.palette.background.default,

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, type ReactNode } from 'react';
 import { isAxiosError } from 'axios';
-import { login as apiLogin } from '../services/authService';
-import { getToken, setToken, removeToken } from '../utils/token';
+import { login as apiLogin } from '../api/authService';
+import { getToken, setToken, removeToken } from '../../../utils/token';
 import { type User, type LoginRequest, type AuthResponse } from '../types/auth';
 import { AuthContext } from './AuthContext';
 

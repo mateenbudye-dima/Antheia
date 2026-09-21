@@ -1,6 +1,6 @@
 import React from 'react';
 import { Container, Typography, Paper } from '@mui/material';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../features/auth/hooks/useAuth';
 
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();

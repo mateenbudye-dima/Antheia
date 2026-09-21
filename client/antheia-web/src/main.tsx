@@ -1,6 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { AuthProvider } from './context/AuthProvider.tsx'
+import { AuthProvider } from './features/auth/context/AuthProvider.tsx'
 import { App } from './App.tsx'
 import { ThemeContextProvider } from './theme/ThemeContextProvider.tsx';
 import { CssBaseline } from '@mui/material';

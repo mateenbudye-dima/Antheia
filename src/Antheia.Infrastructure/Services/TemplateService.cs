@@ -147,18 +147,27 @@ public class TemplateService : ITemplateService
     }
 
     // 2. Patches title, objective, and description on blur or debounce
-    public async Task UpdateHeaderAsync(int templateId, UpdateTemplateHeaderDto dto)
+    public async Task<bool> UpdateHeaderAsync(int templateId, UpdateTemplateHeaderDto dto)
     {
-        var template = await _context.TemplateRecords.FindAsync(templateId);
-        if (template == null) return;
+        var template = await _context.TemplateRecords
+            .FirstOrDefaultAsync(t => t.TemplateId == templateId && t.IsActive);
 
+        if (template == null)
+        {
+            return false;
+        }
+
+        // Apply header updates
         template.Title = dto.Title;
         template.Objective = dto.Objective;
         template.Description = dto.Description;
+
+        // Update audit fields
         template.UpdatedBy = _currentUser.UserId;
         template.UpdatedDate = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
+        return true;
     }
 
     // 3. Creates a new section container
@@ -276,5 +285,234 @@ public class TemplateService : ITemplateService
 
         _context.Evaluations.AddRange(newEntries);
         await _context.SaveChangesAsync();
+    }
+
+    public async Task<List<TemplateListItemDto>> GetTemplatesListAsync()
+    {
+        return await _context.TemplateRecords
+            .AsNoTracking()
+            .Where(t => t.OrganizationId == _currentUser.OrganizationId && t.IsActive)
+            .OrderByDescending(t => t.UpdatedDate)
+            .Select(t => new TemplateListItemDto(
+                t.TemplateId,
+                t.Title,
+                t.Objective,
+                t.UpdatedDate,
+                t.IsPublished
+            ))
+            .ToListAsync();
+    }
+
+    //Get Template for Edit
+    public async Task<GetTemplateForEditDto?> GetTemplateForEditAsync(int templateId)
+    {
+        var template = await _context.TemplateRecords
+            .AsNoTracking()
+            .FirstOrDefaultAsync(t => t.TemplateId == templateId && t.IsActive);
+
+        if (template == null) return null;
+
+        var sections = await _context.SectionRecords
+            .AsNoTracking()
+            .Where(s => s.ContainerId == templateId && s.ContainerTypeId == 1 && s.IsActive)
+            .OrderBy(s => s.SectionOrder)
+            .ToListAsync();
+
+        var sectionIds = sections.Select(s => s.SectionId).ToList();
+
+        var ingredients = await _context.Ingredients
+            .AsNoTracking()
+            .Where(i => sectionIds.Contains(i.SectionId) && i.IsActive)
+            .ToListAsync();
+
+        var prepMethods = await _context.PreparationMethods
+            .AsNoTracking()
+            .Where(p => sectionIds.Contains(p.SectionId) && p.IsActive)
+            .ToListAsync();
+
+        var evaluations = await _context.Evaluations
+            .AsNoTracking()
+            .Where(e => sectionIds.Contains(e.SectionId) && e.IsActive)
+            .ToListAsync();
+
+        var sectionDtos = sections.Select(s => new SectionEditDto(
+            s.SectionId,
+            s.SectionTypeId,
+            s.SectionTitle,
+            s.SectionOrder,
+            ingredients.Where(i => i.SectionId == s.SectionId)
+                       .Select(i => new IngredientEditDto(i.SectionIngredientId, i.Name, i.Type, i.Ratio, i.Quantity))
+                       .ToList(),
+            prepMethods.Where(p => p.SectionId == s.SectionId)
+                       .Select(p => new PrepMethodEditDto(p.PreparationId, p.AdditionSequence, p.MixingSpeed, p.MixingTime, p.Temperature))
+                       .FirstOrDefault(),
+            evaluations.Where(e => e.SectionId == s.SectionId)
+                       .Select(e => new EvaluationEditDto(e.EvaluationId, e.EvaluationParameterType, e.Result, e.Specification, e.Status))
+                       .ToList()
+        )).ToList();
+
+        return new GetTemplateForEditDto(
+            template.TemplateId,
+            template.Title,
+            template.Objective,
+            template.Description,
+            template.IsPublished,
+            sectionDtos
+        );
+    }
+
+
+    // --- Ingredients Implementation ---
+    public async Task<IngredientResponseDto> AddIngredientAsync(CreateIngredientDto dto)
+    {
+        var ingredient = new Ingredient
+        {
+            SectionId = dto.SectionId,
+            Name = dto.Name,
+            Type = dto.Type,
+            Ratio = dto.Ratio,
+            Quantity = dto.Quantity,
+            IsActive = true,
+            CreatedBy = _currentUser.UserId,
+            UpdatedBy = _currentUser.UserId,
+            CreatedDate = DateTime.UtcNow,
+            UpdatedDate = DateTime.UtcNow
+        };
+
+        _context.Ingredients.Add(ingredient);
+        await _context.SaveChangesAsync();
+
+        return new IngredientResponseDto(
+            ingredient.SectionIngredientId,
+            ingredient.SectionId,
+            ingredient.Name,
+            ingredient.Type,
+            ingredient.Ratio,
+            ingredient.Quantity
+        );
+    }
+
+    public async Task<bool> UpdateIngredientAsync(int ingredientId, UpdateIngredientDto dto)
+    {
+        var ingredient = await _context.Ingredients
+            .FirstOrDefaultAsync(i => i.SectionIngredientId == ingredientId && i.IsActive);
+
+        if (ingredient == null) return false;
+
+        ingredient.Name = dto.Name;
+        ingredient.Type = dto.Type;
+        ingredient.Ratio = dto.Ratio;
+        ingredient.Quantity = dto.Quantity;
+        ingredient.UpdatedBy = _currentUser.UserId;
+        ingredient.UpdatedDate = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
+    public async Task<bool> DeleteIngredientAsync(int ingredientId)
+    {
+        var ingredient = await _context.Ingredients
+            .FirstOrDefaultAsync(i => i.SectionIngredientId == ingredientId && i.IsActive);
+
+        if (ingredient == null) return false;
+
+        // Soft delete
+        ingredient.IsActive = false;
+        ingredient.UpdatedBy = _currentUser.UserId;
+        ingredient.UpdatedDate = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
+    // --- Preparation Method Implementation ---
+    public async Task<PreparationMethodResponseDto?> UpdatePreparationMethodAsync(int prepId, UpdatePreparationMethodDto dto)
+    {
+        var prep = await _context.PreparationMethods
+            .FirstOrDefaultAsync(p => p.PreparationId == prepId && p.IsActive);
+
+        if (prep == null) return null;
+
+        prep.AdditionSequence = dto.AdditionSequence;
+        prep.MixingSpeed = dto.MixingSpeed;
+        prep.MixingTime = dto.MixingTime;
+        prep.Temperature = dto.Temperature;
+        prep.UpdatedBy = _currentUser.UserId;
+        prep.UpdatedDate = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+
+        return new PreparationMethodResponseDto(
+            prep.PreparationId,
+            prep.SectionId,
+            prep.AdditionSequence,
+            prep.MixingSpeed,
+            prep.MixingTime,
+            prep.Temperature
+        );
+    }
+
+    // Evaluation Section Implementation ---
+    public async Task<EvaluationResponseDto> AddEvaluationAsync(CreateEvaluationDto dto)
+    {
+        var evaluation = new Evaluation
+        {
+            SectionId = dto.SectionId,
+            EvaluationParameterType = dto.EvaluationParameterType,
+            Specification = dto.Specification,
+            Result = dto.Result,
+            Status = dto.Status,
+            IsActive = true,
+            CreatedBy = _currentUser.UserId,
+            UpdatedBy = _currentUser.UserId,
+            CreatedDate = DateTime.UtcNow,
+            UpdatedDate = DateTime.UtcNow
+        };
+
+        _context.Evaluations.Add(evaluation);
+        await _context.SaveChangesAsync();
+
+        return new EvaluationResponseDto(
+            evaluation.EvaluationId,
+            evaluation.SectionId,
+            evaluation.EvaluationParameterType,
+            evaluation.Specification,
+            evaluation.Result,
+            evaluation.Status
+        );
+    }
+
+    public async Task<bool> UpdateEvaluationAsync(int evaluationId, UpdateEvaluationDto dto)
+    {
+        var evaluation = await _context.Evaluations
+            .FirstOrDefaultAsync(e => e.EvaluationId == evaluationId && e.IsActive);
+
+        if (evaluation == null) return false;
+
+        evaluation.Specification = dto.Specification;
+        evaluation.Result = dto.Result;
+        evaluation.Status = dto.Status;
+        evaluation.UpdatedBy = _currentUser.UserId;
+        evaluation.UpdatedDate = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
+    public async Task<bool> DeleteEvaluationAsync(int evaluationId)
+    {
+        var evaluation = await _context.Evaluations
+            .FirstOrDefaultAsync(e => e.EvaluationId == evaluationId && e.IsActive);
+
+        if (evaluation == null) return false;
+
+        // Soft Delete
+        evaluation.IsActive = false;
+        evaluation.UpdatedBy = _currentUser.UserId;
+        evaluation.UpdatedDate = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+        return true;
     }
 }

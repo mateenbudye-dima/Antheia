@@ -1,5 +1,5 @@
-import apiClient from './apiClient';
-import { setToken, removeToken } from '../utils/token';
+import apiClient from '../../../shared/api/apiClient';
+import { setToken, removeToken } from '../../../utils/token';
 
 export interface LoginRequest {
   username: string;
