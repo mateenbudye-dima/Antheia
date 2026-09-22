@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { isAxiosError } from 'axios';
 import {
@@ -15,66 +15,51 @@ import {
   Skeleton,
   Paper,
   Stack,
+  CircularProgress,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
-import apiClient from '../../../shared/api/apiClient';
-
-interface TemplateItem {
-  templateId: number;
-  title: string;
-  objective: string | null;
-  updatedDate: string;
-  isPublished: boolean | null;
-}
+import { useTemplates, useCreateTemplateDraft } from '../hooks/useTemplates';
 
 export const TemplateListPage: React.FC = () => {
-  const [templates, setTemplates] = useState<TemplateItem[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [isCreating, setIsCreating] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchTemplates = async () => {
-      try {
-        const response = await apiClient.get<TemplateItem[]>('/templates');
-        setTemplates(response.data);
-      } catch (err: unknown) {
-        if (isAxiosError(err)) {
-          setError(err.response?.data?.message || 'Failed to load templates.');
-        } else if (err instanceof Error) {
-          setError(err.message);
-        } else {
-          setError('An unexpected error occurred.');
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
+  // 1. TanStack Query for reading template list
+  const { data: templates = [], isLoading, isError, error } = useTemplates();
 
-    fetchTemplates();
-  }, []);
+  // 2. TanStack Mutation for creating new template draft
+  const { mutate: createDraft, isPending: isCreating } = useCreateTemplateDraft();
 
-  const handleCreateNewTemplate = async () => {
-    setIsCreating(true);
-    try {
-      const response = await apiClient.post<{ templateId: number }>('/templates/draft');
-      navigate(`/templates/${response.data.templateId}/edit`);
-    } catch (err: unknown) {
-      if (isAxiosError(err)) {
-        alert(err.response?.data?.message || 'Could not create template draft.');
-      } else if (err instanceof Error) {
-        alert(err.message);
-      } else {
-        alert('Failed to create new draft');
-      }
-      setIsCreating(false);
-    }
+  const handleCreateNewTemplate = () => {
+    createDraft(undefined, {
+      onSuccess: (data) => {
+        navigate(`/templates/${data.templateId}/edit`);
+      },
+      onError: (err) => {
+        const message = isAxiosError(err)
+          ? err.response?.data?.message || 'Could not create template draft.'
+          : err instanceof Error
+          ? err.message
+          : 'Failed to create new draft';
+        alert(message);
+      },
+    });
   };
 
-  if (loading) {
+  // Helper function to extract error message
+  const getErrorMessage = () => {
+    if (!error) return null;
+    if (isAxiosError(error)) {
+      return error.response?.data?.message || 'Failed to load templates.';
+    }
+    if (error instanceof Error) {
+      return error.message;
+    }
+    return 'An unexpected error occurred.';
+  };
+
+  // Loading skeleton state
+  if (isLoading) {
     return (
       <Container maxWidth="lg" sx={{ py: 4 }}>
         <Grid container spacing={3}>
@@ -102,7 +87,12 @@ export const TemplateListPage: React.FC = () => {
         }}
       >
         <Box>
-          <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }} gutterBottom>
+          <Typography
+            variant="h4"
+            component="h1"
+            sx={{ fontWeight: 'bold' }}
+            gutterBottom
+          >
             Formulation Templates
           </Typography>
           <Typography variant="body1" color="text.secondary">
@@ -111,7 +101,9 @@ export const TemplateListPage: React.FC = () => {
         </Box>
         <Button
           variant="contained"
-          startIcon={<AddIcon />}
+          startIcon={
+            isCreating ? <CircularProgress size={20} color="inherit" /> : <AddIcon />
+          }
           onClick={handleCreateNewTemplate}
           disabled={isCreating}
           size="large"
@@ -121,9 +113,9 @@ export const TemplateListPage: React.FC = () => {
       </Box>
 
       {/* Error Alert */}
-      {error && (
+      {isError && (
         <Alert severity="error" sx={{ mb: 3 }}>
-          {error}
+          {getErrorMessage()}
         </Alert>
       )}
 
@@ -139,7 +131,8 @@ export const TemplateListPage: React.FC = () => {
           }}
         >
           <Typography color="text.secondary">
-            No templates found. Click <strong>"+ Create New Template"</strong> to start a new draft.
+            No templates found. Click <strong>"+ Create New Template"</strong> to
+            start a new draft.
           </Typography>
         </Paper>
       ) : (
@@ -169,7 +162,11 @@ export const TemplateListPage: React.FC = () => {
                       mb: 1.5,
                     }}
                   >
-                    <Typography variant="h6" component="h2" sx={{ fontSize: '1.1rem', fontWeight: '600' }}>
+                    <Typography
+                      variant="h6"
+                      component="h2"
+                      sx={{ fontSize: '1.1rem', fontWeight: '600' }}
+                    >
                       {template.title || 'Untitled Template'}
                     </Typography>
                     <Chip
@@ -206,13 +203,20 @@ export const TemplateListPage: React.FC = () => {
                     borderColor: 'divider',
                   }}
                 >
-                  <Typography variant="caption" color="text.secondary" sx={{ flexGrow: 1 }}>
-                    Updated: {new Date(template.updatedDate).toLocaleDateString()}
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ flexGrow: 1 }}
+                  >
+                    Updated:{' '}
+                    {new Date(template.updatedDate).toLocaleDateString()}
                   </Typography>
                   <Button
                     size="small"
                     endIcon={<ArrowForwardIcon />}
-                    onClick={() => navigate(`/templates/${template.templateId}/edit`)}
+                    onClick={() =>
+                      navigate(`/templates/${template.templateId}/edit`)
+                    }
                   >
                     Edit Template
                   </Button>
