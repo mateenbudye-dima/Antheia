@@ -1,17 +1,20 @@
 ﻿using System.Security.Claims;
 using Antheia.Application.Interfaces;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 
 namespace Antheia.Infrastructure.Services;
 
 public class CurrentUserService : ICurrentUserService
 {
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly ILogger<CurrentUserService> _logger;
 
-    public CurrentUserService(IHttpContextAccessor httpContextAccessor)
+    public CurrentUserService(IHttpContextAccessor httpContextAccessor, ILogger<CurrentUserService> logger)
     {
         _httpContextAccessor = httpContextAccessor;
-    }   
+        _logger = logger;
+    }
 
     public Guid UserId
     {
