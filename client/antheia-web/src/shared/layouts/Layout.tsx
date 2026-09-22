@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+// src/shared/layouts/Layout.tsx
+import React from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   AppBar,
@@ -28,20 +29,18 @@ import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import { useColorMode } from '../../context/ColorModeContext';
 import { useAuth } from '../../features/auth/hooks/useAuth';
+import { useLayout } from './LayoutContext';
 
-const DRAWER_WIDTH = 240;
+const DRAWER_WIDTH = 260;
 
 export const Layout: React.FC = () => {
   const theme = useTheme();
   const { toggleColorMode } = useColorMode();
-  const [mobileOpen, setMobileOpen] = useState(false);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
-  const handleDrawerToggle = () => {
-    setMobileOpen(!mobileOpen);
-  };
+  const { customSidebar, isMobileSidebarOpen, setIsMobileSidebarOpen, toggleMobileSidebar } = useLayout();
 
   const navItems = [
     { text: 'Dashboard', path: '/dashboard', icon: <DashboardIcon /> },
@@ -49,7 +48,6 @@ export const Layout: React.FC = () => {
     { text: 'Profile', path: '/profile', icon: <PersonIcon /> },
   ];
 
-  // Helper to get active page title dynamically
   const getCurrentTitle = () => {
     const currentItem = navItems.find((item) =>
       location.pathname.startsWith(item.path)
@@ -57,50 +55,53 @@ export const Layout: React.FC = () => {
     return currentItem ? currentItem.text : 'Antheia';
   };
 
-  // Helper to check active state (including sub-routes like /templates/1/edit)
-  const isSelected = (path: string) => {
-    return location.pathname.startsWith(path);
-  };
+  const isSelected = (path: string) => location.pathname.startsWith(path);
 
+  // If a custom sidebar (SectionTree) is provided, render it. Otherwise, render main navigation.
   const drawerContent = (
-    <Box sx={{ overflow: 'auto' }}>
+    <Box sx={{ overflow: 'auto', height: '100%' }}>
       <Toolbar sx={{ justifyContent: 'center', py: 1 }}>
         <Typography variant="h6" color="primary" sx={{ fontWeight: 'bold' }}>
-          Antheia
+          {customSidebar ? 'Template Sections' : 'Antheia'}
         </Typography>
       </Toolbar>
       <Divider />
-      <List>
-        {navItems.map((item) => {
-          const active = isSelected(item.path);
-          return (
-            <ListItem key={item.text} disablePadding>
-              <ListItemButton
-                selected={active}
-                onClick={() => {
-                  navigate(item.path);
-                  setMobileOpen(false);
-                }}
-              >
-                <ListItemIcon
-                  sx={{
-                    color: active ? 'primary.main' : 'inherit',
+      {customSidebar ? (
+        <Box sx={{ p: 2 }}>{customSidebar}</Box>
+      ) : (
+        <List>
+          {navItems.map((item) => {
+            const active = isSelected(item.path);
+            return (
+              <ListItem key={item.text} disablePadding>
+                <ListItemButton
+                  selected={active}
+                  onClick={() => {
+                    navigate(item.path);
+                    setIsMobileSidebarOpen(false);
                   }}
                 >
-                  {item.icon}
-                </ListItemIcon>
-                <ListItemText
-                  primary={
-                    <Typography variant="body1" sx={{ fontWeight: active ? 'bold' : 'normal' }}>
-                      {item.text}
-                    </Typography>
-                  }
-                />
-              </ListItemButton>
-            </ListItem>
-          );
-        })}
-      </List>
+                  <ListItemIcon
+                    sx={{ color: active ? 'primary.main' : 'inherit' }}
+                  >
+                    {item.icon}
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={
+                      <Typography
+                        variant="body1"
+                        sx={{ fontWeight: active ? 'bold' : 'normal' }}
+                      >
+                        {item.text}
+                      </Typography>
+                    }
+                  />
+                </ListItemButton>
+              </ListItem>
+            );
+          })}
+        </List>
+      )}
     </Box>
   );
 
@@ -120,18 +121,16 @@ export const Layout: React.FC = () => {
           <IconButton
             color="inherit"
             edge="start"
-            onClick={handleDrawerToggle}
+            onClick={toggleMobileSidebar}
             sx={{ mr: 2, display: { md: 'none' } }}
           >
             <MenuIcon />
           </IconButton>
 
-          {/* Dynamic Title based on current route */}
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
             {getCurrentTitle()}
           </Typography>
 
-          {/* User Welcome & Theme/Logout Controls */}
           {user && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Avatar
@@ -179,16 +178,16 @@ export const Layout: React.FC = () => {
         </Toolbar>
       </AppBar>
 
-      {/* Navigation Sidebar */}
+      {/* Navigation / Custom Sidebar Drawer */}
       <Box
         component="nav"
         sx={{ width: { md: DRAWER_WIDTH }, flexShrink: { md: 0 } }}
       >
-        {/* Temporary Drawer for Mobile Screens */}
+        {/* Temporary Drawer for xs and sm screens */}
         <Drawer
           variant="temporary"
-          open={mobileOpen}
-          onClose={handleDrawerToggle}
+          open={isMobileSidebarOpen}
+          onClose={ toggleMobileSidebar }
           ModalProps={{ keepMounted: true }}
           sx={{
             display: { xs: 'block', md: 'none' },
@@ -217,18 +216,18 @@ export const Layout: React.FC = () => {
         </Drawer>
       </Box>
 
-      {/* Main Page Content Area */}
+      {/* Main Page Content */}
       <Box
         component="main"
         sx={{
           flexGrow: 1,
-          p: { xs: 1.5, sm: 2, md: 3 }, // Responsive padding matching feature components
+          p: { xs: 1.5, sm: 2, md: 3 },
           width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
           minHeight: '100vh',
           backgroundColor: (theme) => theme.palette.background.default,
         }}
       >
-        <Toolbar /> {/* Spacer below fixed AppBar */}
+        <Toolbar />
         <Outlet />
       </Box>
     </Box>

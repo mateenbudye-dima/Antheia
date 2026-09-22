@@ -1,85 +1,85 @@
-import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { Container, CircularProgress, Alert, Box } from '@mui/material';
+import React from 'react';
+import { Container, Box } from '@mui/material';
 import { TemplateHeaderSection } from './TemplateHeaderSection';
 import { IngredientsSection } from './IngredientsSection';
 import { PrepMethodSection } from './PrepMethodSection';
 import { EvaluationSection } from './EvaluationSection';
 import type { FullTemplateResponse } from '../types/template.types';
-import { templatesApi } from '../api/templatesApi';
 
-export const TemplateEditor: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
-  const [data, setData] = useState<FullTemplateResponse | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+export interface TemplateEditorProps {
+  data: FullTemplateResponse;
+  selectedSectionId: string;
+  viewMode: 'split' | 'all';
+}
 
-  useEffect(() => {
-    const fetchTemplate = async () => {
-      try {
-        if (!id) return;
-        const result = await templatesApi.getFullTemplate(Number(id));
-        setData(result);
-      } catch (err) {
-        console.error('Error loading template:', err);
-        setError('Failed to load template data.');
-      } finally {
-        setLoading(false);
-      }
-    };
+export const TemplateEditor: React.FC<TemplateEditorProps> = ({
+  data,
+  selectedSectionId,
+  viewMode,
+}) => {
+  // Extract specific sections safely from FullTemplateResponse
+  const ingredientsSection = data.sections?.find(
+    (sec) => sec.sectionTypeId === 1
+  );
+  const prepSection = data.sections?.find(
+    (sec) => sec.sectionTypeId === 2
+  );
+  const evaluationSection = data.sections?.find(
+    (sec) => sec.sectionTypeId === 3
+  );
 
-    if (id) fetchTemplate();
-  }, [id]);
+  // Render Section 0: Header
+  const renderHeader = () => (
+    <TemplateHeaderSection
+      templateId={data.templateId}
+      initialTitle={data.title || ''}
+      initialObjective={data.objective || ''}
+      initialDescription={data.description || ''}
+    />
+  );
 
-  if (loading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
+  // Render Section 1: Ingredients
+  const renderIngredients = () =>
+    ingredientsSection ? (
+      <IngredientsSection
+        sectionId={ingredientsSection.sectionId}
+        initialIngredients={ingredientsSection.ingredients || []}
+      />
+    ) : null;
 
-  if (error || !data) {
-    return (
-      <Container maxWidth="md" sx={{ mt: 4 }}>
-        <Alert severity="error">{error || 'Template not found'}</Alert>
-      </Container>
-    );
-  }
+  // Render Section 2: Preparation Method
+  const renderPrepMethod = () =>
+    prepSection?.preparationMethod ? (
+      <PrepMethodSection prepData={prepSection.preparationMethod} />
+    ) : null;
 
-  const ingredientsSection = data.sections?.find((s) => s.sectionTypeId === 1);
-  const prepSection = data.sections?.find((s) => s.sectionTypeId === 2);
-  const evaluationSection = data.sections?.find((s) => s.sectionTypeId === 3);
+  // Render Section 3: Evaluation Parameters
+  const renderEvaluation = () =>
+    evaluationSection ? (
+      <EvaluationSection
+        sectionId={evaluationSection.sectionId}
+        initialEvaluations={evaluationSection.evaluations || []}
+      />
+    ) : null;
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      {/* 1. Editable Header Section */}
-      <TemplateHeaderSection
-        templateId={data.templateId}
-        initialTitle={data.title || ''}
-        initialObjective={data.objective || ''}
-        initialDescription={data.description || ''}
-      />
-
-      {/* 2. Section 1: Ingredients */}
-      {ingredientsSection && (
-        <IngredientsSection
-          sectionId={ingredientsSection.sectionId}
-          initialIngredients={ingredientsSection.ingredients || []}
-        />
-      )}
-
-      {/* 3. Section 2: Preparation Method */}
-      {prepSection?.preparationMethod && (
-        <PrepMethodSection prepData={prepSection.preparationMethod} />
-      )}
-
-      {/* 4. Section 3: Evaluation Parameters */}
-      {evaluationSection && (
-        <EvaluationSection
-          sectionId={evaluationSection.sectionId}
-          initialEvaluations={evaluationSection.evaluations || []}
-        />
+    <Container maxWidth="lg" sx={{ py: 2 }}>
+      {viewMode === 'split' ? (
+        /* 1. SPLIT VIEW: Show only the active selected section */
+        <Box>
+          {selectedSectionId === 'header' && renderHeader()}
+          {selectedSectionId === 'section_1' && renderIngredients()}
+          {selectedSectionId === 'section_2' && renderPrepMethod()}
+          {selectedSectionId === 'section_3' && renderEvaluation()}
+        </Box>
+      ) : (
+        /* 2. COMPLETE VIEW: Show all sections stacked sequentially */
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          {renderHeader()}
+          {renderIngredients()}
+          {renderPrepMethod()}
+          {renderEvaluation()}
+        </Box>
       )}
     </Container>
   );
