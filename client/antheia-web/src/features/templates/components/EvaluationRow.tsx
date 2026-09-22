@@ -2,25 +2,31 @@ import React from 'react';
 import { TableRow, TableCell, TextField, Select, MenuItem, IconButton, Tooltip } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import type { EvaluationItem } from '../types/template.types';
-import { templatesApi } from '../api/templatesApi';
 import { useAutoSave } from '../../../shared/hooks/useAutoSave';
 import { StatusBadge } from '../../../shared/components/StatusBadge';
+import { useTemplateMutations } from '../hooks/useTemplateMutations';
 
 interface EvaluationRowProps {
+  templateId: number;
   item: EvaluationItem;
   onChange: (id: number, field: keyof EvaluationItem, value: string) => void;
   onDelete: (id: number) => void;
 }
 
-export const EvaluationRow: React.FC<EvaluationRowProps> = ({ item, onChange, onDelete }) => {
+export const EvaluationRow: React.FC<EvaluationRowProps> = ({ templateId, item, onChange, onDelete }) => {
+    const { updateEvaluationAsync } = useTemplateMutations(templateId);
+    
   const { status } = useAutoSave({
-    value: item,
-    delay: 800,
-    onSave: async (debounced) => {
-      await templatesApi.updateEvaluation(debounced.evaluationId, {
-        specification: debounced.specification,
-        result: debounced.result,
-        status: debounced.status,
+      value: item,
+      delay: 800,
+      onSave: async (debounced) => {
+        await updateEvaluationAsync({
+          evaluationId:debounced.evaluationId, 
+          payload: {
+          specification: debounced.specification,
+          result: debounced.result,
+          status: debounced.status,
+        }
       });
     },
   });

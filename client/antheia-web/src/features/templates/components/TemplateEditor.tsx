@@ -1,6 +1,6 @@
 import React from 'react';
 import { Container, Box } from '@mui/material';
-import { TemplateHeaderSection } from './TemplateHeaderSection';
+import { HeaderSection } from './HeaderSection';
 import { IngredientsSection } from './IngredientsSection';
 import { PrepMethodSection } from './PrepMethodSection';
 import { EvaluationSection } from './EvaluationSection';
@@ -30,7 +30,7 @@ export const TemplateEditor: React.FC<TemplateEditorProps> = ({
 
   // Render Section 0: Header
   const renderHeader = () => (
-    <TemplateHeaderSection
+    <HeaderSection
       templateId={data.templateId}
       initialTitle={data.title || ''}
       initialObjective={data.objective || ''}
@@ -42,6 +42,7 @@ export const TemplateEditor: React.FC<TemplateEditorProps> = ({
   const renderIngredients = () =>
     ingredientsSection ? (
       <IngredientsSection
+        templateId={data.templateId}
         sectionId={ingredientsSection.sectionId}
         initialIngredients={ingredientsSection.ingredients || []}
       />
@@ -50,13 +51,14 @@ export const TemplateEditor: React.FC<TemplateEditorProps> = ({
   // Render Section 2: Preparation Method
   const renderPrepMethod = () =>
     prepSection?.preparationMethod ? (
-      <PrepMethodSection prepData={prepSection.preparationMethod} />
+      <PrepMethodSection templateId={data.templateId} prepData={prepSection.preparationMethod} />
     ) : null;
 
   // Render Section 3: Evaluation Parameters
   const renderEvaluation = () =>
     evaluationSection ? (
       <EvaluationSection
+        templateId={data.templateId}
         sectionId={evaluationSection.sectionId}
         initialEvaluations={evaluationSection.evaluations || []}
       />

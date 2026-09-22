@@ -1,22 +1,27 @@
 import React, { useState } from 'react';
 import { Paper, Grid, TextField, Typography, Box, InputAdornment } from '@mui/material';
-import { templatesApi } from '../api/templatesApi';
 import type { PreparationMethod } from '../types/template.types';
 import { useAutoSave } from '../../../shared/hooks/useAutoSave';
 import { StatusBadge } from '../../../shared/components/StatusBadge';
+import { useTemplateMutations } from '../hooks/useTemplateMutations';
 
-export const PrepMethodSection: React.FC<{ prepData: PreparationMethod }> = ({ prepData }) => {
+export const PrepMethodSection: React.FC<{templateId:number, prepData: PreparationMethod }> = ({ templateId, prepData }) => {
   const [prep, setPrep] = useState<PreparationMethod>(prepData);
+
+  const {updatePrepMethodAsync} = useTemplateMutations(templateId);
 
   const { status } = useAutoSave({
     value: prep,
     delay: 800,
     onSave: async (debouncedPrep) => {
-      await templatesApi.updatePrepMethod(debouncedPrep.preparationId, {
+      await updatePrepMethodAsync({
+        prepId:debouncedPrep.preparationId, 
+        payload:{
         additionSequence: debouncedPrep.additionSequence,
         mixingSpeed: debouncedPrep.mixingSpeed,
         mixingTime: debouncedPrep.mixingTime,
         temperature: debouncedPrep.temperature,
+        }
       });
     },
   });

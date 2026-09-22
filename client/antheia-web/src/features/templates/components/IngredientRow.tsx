@@ -2,26 +2,32 @@ import React from 'react';
 import { TableRow, TableCell, TextField, IconButton, Tooltip } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import type { Ingredient } from '../types/template.types';
-import { templatesApi } from '../api/templatesApi';
 import { useAutoSave } from '../../../shared/hooks/useAutoSave';
 import { StatusBadge } from '../../../shared/components/StatusBadge';
+import { useTemplateMutations } from '../hooks/useTemplateMutations';
 
 interface IngredientRowProps {
+  templateId: number;
   item: Ingredient;
   onChange: (id: number, field: keyof Ingredient, value: string | number) => void;
   onDelete: (id: number) => void;
 }
 
-export const IngredientRow: React.FC<IngredientRowProps> = ({ item, onChange, onDelete }) => {
+export const IngredientRow: React.FC<IngredientRowProps> = ({templateId, item, onChange, onDelete }) => {
+  const { updateIngredientAsync } = useTemplateMutations(templateId);
+  
   const { status } = useAutoSave({
     value: item,
     delay: 800,
     onSave: async (debouncedItem) => {
-      await templatesApi.updateIngredient(debouncedItem.sectionIngredientId, {
-        name: debouncedItem.name,
-        type: debouncedItem.type,
-        ratio: debouncedItem.ratio,
-        quantity: debouncedItem.quantity,
+      await updateIngredientAsync({
+        id:debouncedItem.sectionIngredientId, 
+        payload:{
+          name: debouncedItem.name,
+          type: debouncedItem.type,
+          ratio: debouncedItem.ratio,
+          quantity: debouncedItem.quantity,
+        }
       });
     },
   });

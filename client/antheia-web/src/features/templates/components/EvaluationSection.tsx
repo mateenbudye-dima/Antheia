@@ -13,20 +13,23 @@ import {
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import type { EvaluationItem } from '../types/template.types';
-import { templatesApi } from '../api/templatesApi';
 import { EvaluationRow } from './EvaluationRow';
+import { useTemplateMutations } from '../hooks/useTemplateMutations';
 
 interface Props {
+  templateId: number;
   sectionId: number;
   initialEvaluations: EvaluationItem[];
 }
 
-export const EvaluationSection: React.FC<Props> = ({ sectionId, initialEvaluations }) => {
+export const EvaluationSection: React.FC<Props> = ({ templateId, sectionId, initialEvaluations }) => {
   const [evaluations, setEvaluations] = useState<EvaluationItem[]>(initialEvaluations);
+
+  const { addEvaluationAsync, deleteEvaluationAsync } = useTemplateMutations(templateId);
 
   const addParam = async () => {
     try {
-      const newEvaluation = await templatesApi.addEvaluation({
+      const newEvaluation = await addEvaluationAsync({
         sectionId,
         evaluationParameterType: 1,
         specification: 'Parameter Name',
@@ -47,7 +50,7 @@ export const EvaluationSection: React.FC<Props> = ({ sectionId, initialEvaluatio
 
   const deleteRow = async (id: number) => {
     try {
-      await templatesApi.deleteEvaluation(id);
+      await deleteEvaluationAsync(id);
       setEvaluations((prev) => prev.filter((item) => item.evaluationId !== id));
     } catch (err) {
       console.error('Failed deleting evaluation row:', err);
@@ -73,6 +76,7 @@ export const EvaluationSection: React.FC<Props> = ({ sectionId, initialEvaluatio
           <TableBody>
             {evaluations.map((item) => (
               <EvaluationRow
+                templateId={templateId}
                 key={item.evaluationId}
                 item={item}
                 onChange={updateField}

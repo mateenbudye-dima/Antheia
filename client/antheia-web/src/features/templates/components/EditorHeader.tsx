@@ -1,4 +1,3 @@
-// src/features/templates/components/EditorHeader.tsx
 import React from 'react';
 import {
   Box,

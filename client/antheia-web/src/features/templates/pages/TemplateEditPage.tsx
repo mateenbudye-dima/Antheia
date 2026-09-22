@@ -1,5 +1,4 @@
-// src/features/templates/pages/TemplateEditPage.tsx
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import React, { useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -17,14 +16,14 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { EditorHeader } from '../components/EditorHeader';
 import { TemplateEditor } from '../components/TemplateEditor';
 import { SectionTree, type SectionNode } from '../components/SectionTree';
-import type { FullTemplateResponse } from '../types/template.types';
-import { templatesApi } from '../api/templatesApi';
+import { useTemplate } from '../hooks/useTemplate';
+import { TemplateEditorProvider } from '../context/TemplateEditorContext';
 import { useLayout } from '../../../shared/layouts/LayoutContext';
+import { useTemplateEditorContext } from '../hooks/useTemplateEditorContext';
 
-export const TemplateEditPage: React.FC = () => {
+const TemplateEditContent: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
@@ -35,44 +34,16 @@ export const TemplateEditPage: React.FC = () => {
     toggleMobileSidebar,
   } = useLayout();
 
-  const [data, setData] = useState<FullTemplateResponse | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedSectionId, setSelectedSectionId] = useState<string>('header');
-  const [viewMode, setViewMode] = useState<'split' | 'all'>('split');
+  // TanStack Query for server data
+  const { data, isLoading, isError, error } = useTemplate(id);
+
+  // Reducer Context for UI state
+  const { state, setSelectedSection, setViewMode } = useTemplateEditorContext();
+  const { selectedSectionId, viewMode } = state;
 
   const templateId = useMemo(() => (id ? parseInt(id, 10) : null), [id]);
 
-  // 1. Fetch Template Data
-  useEffect(() => {
-    let isMounted = true;
-
-    const fetchTemplate = async () => {
-      if (!templateId || isNaN(templateId)) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        setLoading(true);
-        const result = await templatesApi.getFullTemplate(templateId);
-        if (isMounted) setData(result);
-      } catch (err) {
-        console.error('Error loading template:', err);
-        if (isMounted) setError('Failed to load template data.');
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    };
-
-    fetchTemplate();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [templateId]);
-
-  // 2. Build Tree Structure
+  // Build Tree Structure
   const treeSections: SectionNode[] = useMemo(() => {
     const nodes: SectionNode[] = [{ id: 'header', title: 'Header & Overview' }];
 
@@ -91,18 +62,18 @@ export const TemplateEditPage: React.FC = () => {
     return nodes;
   }, [data]);
 
-  // 3. Handle Section Selection
+  // Section Selection Callback
   const handleSelectSection = useCallback(
     (secId: string) => {
-      setSelectedSectionId(secId);
+      setSelectedSection(secId);
       if (isMobile) {
         toggleMobileSidebar();
       }
     },
-    [isMobile, toggleMobileSidebar]
+    [isMobile, toggleMobileSidebar, setSelectedSection]
   );
 
-  // 4. Inject Section Tree in Layout Sidebar
+  // Inject Section Tree into Layout Sidebar
   useEffect(() => {
     if (viewMode === 'split') {
       setCustomSidebar(
@@ -127,16 +98,6 @@ export const TemplateEditPage: React.FC = () => {
     handleSelectSection,
   ]);
 
-  // Handlers
-  const handleViewModeChange = (
-    _event: React.MouseEvent<HTMLElement>,
-    newMode: 'split' | 'all' | null
-  ) => {
-    if (newMode !== null) {
-      setViewMode(newMode);
-    }
-  };
-
   const handleToggleClick = () => {
     if (isMobile) {
       toggleMobileSidebar();
@@ -145,7 +106,6 @@ export const TemplateEditPage: React.FC = () => {
     }
   };
 
-  // --- Render Error & Loading States ---
   if (!templateId || isNaN(templateId)) {
     return (
       <Container maxWidth="md" sx={{ py: 3 }}>
@@ -165,7 +125,7 @@ export const TemplateEditPage: React.FC = () => {
     );
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', p: 6 }}>
         <CircularProgress />
@@ -173,10 +133,12 @@ export const TemplateEditPage: React.FC = () => {
     );
   }
 
-  if (error || !data) {
+  if (isError || !data) {
     return (
       <Container maxWidth="md" sx={{ py: 3 }}>
-        <Alert severity="error">{error || 'Template not found'}</Alert>
+        <Alert severity="error">
+          {error?.message || 'Template not found'}
+        </Alert>
         <Button
           startIcon={<ArrowBackIcon />}
           onClick={() => navigate('/templates')}
@@ -190,7 +152,6 @@ export const TemplateEditPage: React.FC = () => {
 
   return (
     <Box sx={{ width: '100%' }}>
-      {/* Separated Header Toolbar Component */}
       <EditorHeader
         title={data.title}
         templateId={templateId}
@@ -199,10 +160,9 @@ export const TemplateEditPage: React.FC = () => {
         isSidebarCollapsed={isSidebarCollapsed}
         onToggleSidebar={handleToggleClick}
         onBack={() => navigate('/templates')}
-        onViewModeChange={handleViewModeChange}
+        onViewModeChange={(_e, newMode) => newMode && setViewMode(newMode)}
       />
 
-      {/* Main Content Area */}
       <Paper
         variant="outlined"
         sx={{ p: { xs: 2, sm: 3 }, minHeight: 'calc(100vh - 160px)' }}
@@ -216,3 +176,10 @@ export const TemplateEditPage: React.FC = () => {
     </Box>
   );
 };
+
+// Wrapper ensuring the provider is scoped specifically to this page
+export const TemplateEditPage: React.FC = () => (
+  <TemplateEditorProvider>
+    <TemplateEditContent />
+  </TemplateEditorProvider>
+);

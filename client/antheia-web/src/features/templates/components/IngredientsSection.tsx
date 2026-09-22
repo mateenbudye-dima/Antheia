@@ -13,20 +13,23 @@ import {
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import type { Ingredient } from '../types/template.types';
-import { templatesApi } from '../api/templatesApi';
 import { IngredientRow } from './IngredientRow';
+import { useTemplateMutations } from '../hooks/useTemplateMutations';
 
 interface Props {
+  templateId: number;
   sectionId: number;
   initialIngredients: Ingredient[];
 }
 
-export const IngredientsSection: React.FC<Props> = ({ sectionId, initialIngredients }) => {
+export const IngredientsSection: React.FC<Props> = ({ templateId, sectionId, initialIngredients }) => {
   const [ingredients, setIngredients] = useState<Ingredient[]>(initialIngredients);
 
+  const { addIngredientAsync, deleteIngredientAsync } = useTemplateMutations(templateId);
+  
   const addRow = async () => {
     try {
-      const newIngredient = await templatesApi.addIngredient({
+      const newIngredient = await addIngredientAsync({
         sectionId,
         name: 'New Ingredient',
         type: 'Active',
@@ -47,7 +50,7 @@ export const IngredientsSection: React.FC<Props> = ({ sectionId, initialIngredie
 
   const deleteRow = async (id: number) => {
     try {
-      await templatesApi.deleteIngredient(id);
+      await deleteIngredientAsync(id);
       setIngredients((prev) => prev.filter((item) => item.sectionIngredientId !== id));
     } catch (err) {
       console.error('Failed to delete ingredient:', err);
@@ -75,6 +78,7 @@ export const IngredientsSection: React.FC<Props> = ({ sectionId, initialIngredie
             {ingredients.map((item) => (
               <IngredientRow
                 key={item.sectionIngredientId}
+                templateId={templateId}
                 item={item}
                 onChange={updateLocalField}
                 onDelete={deleteRow}

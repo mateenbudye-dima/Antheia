@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Paper, Grid, TextField, Typography, Box } from '@mui/material';
-import { templatesApi } from '../api/templatesApi';
 import { useAutoSave } from '../../../shared/hooks/useAutoSave';
 import { StatusBadge } from '../../../shared/components/StatusBadge';
+import { useTemplateMutations } from '../hooks/useTemplateMutations';
 
 interface Props {
   templateId: number;
@@ -11,7 +11,7 @@ interface Props {
   initialDescription: string;
 }
 
-export const TemplateHeaderSection: React.FC<Props> = ({
+export const HeaderSection: React.FC<Props> = ({
   templateId,
   initialTitle,
   initialObjective,
@@ -23,16 +23,13 @@ export const TemplateHeaderSection: React.FC<Props> = ({
     description: initialDescription,
   });
 
+  const {updateHeaderAsync} = useTemplateMutations(templateId);
+
   const { status } = useAutoSave({
     value: headerData,
     delay: 800,
     onSave: async (debounced) => {
-      // Replace with your actual template update API method
-      await templatesApi.updateTemplateHeader(templateId, {
-        title: debounced.title,
-        objective: debounced.objective,
-        description: debounced.description,
-      });
+      await updateHeaderAsync(debounced);
     },
   });
 
