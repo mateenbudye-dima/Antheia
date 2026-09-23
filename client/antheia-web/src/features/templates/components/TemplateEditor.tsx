@@ -8,13 +8,9 @@ import {
   ListItemIcon,
   ListItemText,
   Divider,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogContentText,
-  DialogActions,
   IconButton,
   Typography,
+  Tooltip,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import FastfoodIcon from '@mui/icons-material/Fastfood';
@@ -26,16 +22,16 @@ import { HeaderSection } from './HeaderSection';
 import { IngredientsSection } from './IngredientsSection';
 import { PrepMethodSection } from './PrepMethodSection';
 import { EvaluationSection } from './EvaluationSection';
-import type { FullTemplateResponse, Section } from '../types/template.types';
+import { SectionType, type FullTemplateResponse, type Section } from '../types/template.types';
 import { useTemplateMutations } from '../hooks/useTemplateMutations';
 import type { CreateSectionPayload } from '../api/templatesApi';
+import { useConfirm } from '../../../shared/context/DialogContext'; // 👈 Global hook
 
 export interface TemplateEditorProps {
   data: FullTemplateResponse;
-  selectedSectionId: string; // E.g., 'header' or specific database sectionId like '102'
+  selectedSectionId: string;
   viewMode: 'split' | 'all';
-  onSectionDeleted?: () => void; // Optional callback to reset selection
-
+  onSectionDeleted?: () => void;
 }
 
 export const TemplateEditor: React.FC<TemplateEditorProps> = ({
@@ -45,6 +41,7 @@ export const TemplateEditor: React.FC<TemplateEditorProps> = ({
   onSectionDeleted,
 }) => {
   const { addSection, deleteSection, isSaving } = useTemplateMutations(data.templateId);
+  const confirm = useConfirm(); // 👈 Invoke confirmation dialog hook
 
   // Dropdown Menu State
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -58,37 +55,48 @@ export const TemplateEditor: React.FC<TemplateEditorProps> = ({
     setAnchorEl(null);
   };
 
-  // Delete Confirmation Modal State
-  const [sectionToDelete, setSectionToDelete] = useState<Section | null>(null);
+  const hasPrepMethod = data.sections?.some((sec) => sec.sectionTypeId === SectionType.PreparationMethod);
 
-  const handleAddSection = (sectionTypeId: 1 | 2 | 3) => {
+  const handleAddSection = (sectionTypeId: SectionType) => {
     handleCloseMenu();
     const payload: CreateSectionPayload = {
       sectionTypeId,
       sectionTitle:
-        sectionTypeId === 1
+        sectionTypeId === SectionType.Ingredients
           ? 'Ingredients'
-          : sectionTypeId === 2
+          : sectionTypeId === SectionType.PreparationMethod
           ? 'Preparation Method'
           : 'Evaluation Parameters',
     };
     addSection(payload);
   };
 
-  const handleConfirmDelete = () => {
-    if (sectionToDelete) {
-      deleteSection(sectionToDelete.sectionId, {
-        onSuccess: () => {
-          setSectionToDelete(null);
-          // If deleted section was currently active, notify parent to select 'header'
-          if (String(sectionToDelete.sectionId) === selectedSectionId && onSectionDeleted) {
-            onSectionDeleted();
-          }
-        },
-      });
-    }
+  // 💥 DELETION TRIGGERED IMPERATIVELY
+  const handleDeleteClick = (section: Section) => {
+    confirm({
+      title: 'Delete Section?',
+      message: `Are you sure you want to delete "${
+        section.sectionTitle || 'this section'
+      }"? All contained data will be removed.`,
+      confirmText: 'Delete',
+      confirmColor: 'error',
+      onConfirm: async () => {
+        await new Promise<void>((resolve, reject) => {
+          deleteSection(section.sectionId, {
+            onSuccess: () => {
+              if (String(section.sectionId) === selectedSectionId && onSectionDeleted) {
+                onSectionDeleted();
+              }
+              resolve();
+            },
+            onError: (err) => reject(err),
+          });
+        });
+      },
+    });
   };
-  // Section Wrapper with Title & Delete Icon
+
+  // Section Wrapper with Title & Delete Action
   const renderSectionWrapper = (section: Section, children: React.ReactNode) => {
     return (
       <Box key={section.sectionId} sx={{ mb: 4, position: 'relative' }}>
@@ -96,36 +104,39 @@ export const TemplateEditor: React.FC<TemplateEditorProps> = ({
           sx={{
             display: 'flex',
             alignItems: 'center',
-            justify: 'space-between',
-            mb: 1,
-            pb: 0.5,
-            borderBottom: '1px solid',
-            borderColor: 'divider',
+            justifyContent: 'space-between',
+            mb: 2,
+            pb: 1,
+            px: 1,
+            backgroundColor: 'action.hover',
+            borderRadius: 1,
+            borderBottom: '2px solid',
+            borderColor: 'primary.main',
           }}
         >
-          <Typography sx={{ variant: "h6", color:"text.primary" }} >
+          <Typography variant="h6" color="text.primary" sx={{ fontWeight: 'medium' }}>
             {section.sectionTitle ||
-              (section.sectionTypeId === 1
+              (section.sectionTypeId === SectionType.Ingredients
                 ? 'Ingredients'
-                : section.sectionTypeId === 2
+                : section.sectionTypeId === SectionType.PreparationMethod
                 ? 'Preparation Method'
                 : 'Evaluation Parameters')}
           </Typography>
-          <IconButton
-            color="error"
-            size="small"
-            onClick={() => setSectionToDelete(section)}
-            title="Delete Section"
-          >
-            <DeleteOutlineIcon fontSize="small" />
-          </IconButton>
+          <Tooltip title="Delete Section">
+            <IconButton
+              color="error"
+              size="small"
+              onClick={() => handleDeleteClick(section)}
+            >
+              <DeleteOutlineIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
         </Box>
         {children}
       </Box>
     );
   };
 
-  // Helper to render a individual section based on its sectionTypeId
   const renderSectionNode = (section: Section) => {
     switch (section.sectionTypeId) {
       case 1:
@@ -162,7 +173,6 @@ export const TemplateEditor: React.FC<TemplateEditorProps> = ({
     }
   };
 
-  // Render Header Component
   const renderHeader = () => (
     <HeaderSection
       templateId={data.templateId}
@@ -174,13 +184,28 @@ export const TemplateEditor: React.FC<TemplateEditorProps> = ({
 
   return (
     <Container maxWidth="lg" sx={{ py: 2 }}>
-      {/* Add Section Controls */}
-      <Box sx={{ mb: 2, pt: 2, borderTop: 1, borderColor: 'divider' }}>
+      {viewMode === 'split' ? (
+        <Box>
+          {selectedSectionId === 'header' && renderHeader()}
+          {data.sections
+            ?.filter((sec) => String(sec.sectionId) === selectedSectionId)
+            .map((sec) => renderSectionNode(sec))}
+        </Box>
+      ) : (
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          {renderHeader()}
+          {data.sections?.map((sec) => renderSectionNode(sec))}
+        </Box>
+      )}
+
+      {/* Add Section Menu */}
+      <Box sx={{ mt: 4, pt: 2, borderTop: 1, borderColor: 'divider', display: 'flex', justifyContent: 'center' }}>
         <Button
           variant="outlined"
           startIcon={<AddIcon />}
           onClick={handleOpenMenu}
           disabled={isSaving}
+          size="large"
         >
           {isSaving ? 'Adding Section...' : 'Add Section'}
         </Button>
@@ -189,8 +214,8 @@ export const TemplateEditor: React.FC<TemplateEditorProps> = ({
           anchorEl={anchorEl}
           open={isMenuOpen}
           onClose={handleCloseMenu}
-          transformOrigin={{ horizontal: 'left', vertical: 'top' }}
-          anchorOrigin={{ horizontal: 'left', vertical: 'bottom' }}
+          transformOrigin={{ horizontal: 'center', vertical: 'top' }}
+          anchorOrigin={{ horizontal: 'center', vertical: 'bottom' }}
         >
           <MenuItem onClick={() => handleAddSection(1)}>
             <ListItemIcon>
@@ -199,11 +224,14 @@ export const TemplateEditor: React.FC<TemplateEditorProps> = ({
             <ListItemText primary="Ingredients Section" />
           </MenuItem>
 
-          <MenuItem onClick={() => handleAddSection(2)}>
+          <MenuItem onClick={() => handleAddSection(2)} disabled={hasPrepMethod}>
             <ListItemIcon>
-              <BuildIcon fontSize="small" />
+              <BuildIcon fontSize="small" color={hasPrepMethod ? 'disabled' : 'inherit'} />
             </ListItemIcon>
-            <ListItemText primary="Preparation Method" />
+            <ListItemText
+              primary="Preparation Method"
+              secondary={hasPrepMethod ? 'Already added' : undefined}
+            />
           </MenuItem>
 
           <Divider />
@@ -216,39 +244,6 @@ export const TemplateEditor: React.FC<TemplateEditorProps> = ({
           </MenuItem>
         </Menu>
       </Box>
-
-      {viewMode === 'split' ? (
-        /* 1. SPLIT VIEW: Render selected item dynamically */
-        <Box>
-          {selectedSectionId === 'header' && renderHeader()}
-          {data.sections
-            ?.filter((sec) => String(sec.sectionId) === selectedSectionId)
-            .map((sec) => renderSectionNode(sec))}
-        </Box>
-      ) : (
-        /* 2. COMPLETE VIEW: Stack header and all array items sequentially */
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          {renderHeader()}
-          {data.sections?.map((sec) => renderSectionNode(sec))}
-        </Box>
-      )}
-
-      {/* Delete Confirmation Modal */}
-      <Dialog open={Boolean(sectionToDelete)} onClose={() => setSectionToDelete(null)}>
-        <DialogTitle>Delete Section?</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            Are you sure you want to delete this section? This action cannot be undone.
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setSectionToDelete(null)}>Cancel</Button>
-          <Button color="error" variant="contained" onClick={handleConfirmDelete}>
-            Delete
-          </Button>
-        </DialogActions>
-      </Dialog>
-
     </Container>
   );
 };

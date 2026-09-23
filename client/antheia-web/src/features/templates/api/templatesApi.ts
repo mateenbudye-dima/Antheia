@@ -1,5 +1,5 @@
 import apiClient from "../../../shared/api/apiClient";
-import type { EvaluationItem, FullTemplateResponse, Ingredient, PreparationMethod } from "../types/template.types";
+import type { EvaluationItem, FullTemplateResponse, Ingredient, PreparationMethod, SectionType } from "../types/template.types";
 
 export interface UpdateTemplateHeaderDto {
   title: string;
@@ -8,7 +8,7 @@ export interface UpdateTemplateHeaderDto {
 }
 export interface CreateSectionPayload {
   sectionTitle: string;
-  sectionTypeId: 1 | 2 | 3; // 1: Ingredients, 2: Prep, 3: Evaluation
+  sectionTypeId: SectionType;
 }
 // DTOs for create & update payloads
 export interface CreateIngredientPayload {

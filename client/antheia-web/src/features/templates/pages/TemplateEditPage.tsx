@@ -57,7 +57,6 @@ const TemplateEditContent: React.FC = () => {
     }
   };
 
-  // ✅ FIXED: Dynamically map using sec.sectionId (Database Primary Key) instead of hardcoded type IDs
   const treeSections: SectionNode[] = useMemo(() => {
     const nodes: SectionNode[] = [{ id: 'header', title: 'Header & Overview' }];
 

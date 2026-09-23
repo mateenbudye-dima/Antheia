@@ -1,3 +1,10 @@
+export const SectionType = {
+  Ingredients: 1,
+  PreparationMethod: 2,
+  Evaluation: 3,
+} as const;
+export type SectionType = typeof SectionType[keyof typeof SectionType];
+
 export interface Ingredient {
   sectionIngredientId: number;
   name: string;
@@ -24,7 +31,7 @@ export interface EvaluationItem {
 
 export interface Section {
   sectionId: number;
-  sectionTypeId: number;
+  sectionTypeId: SectionType;
   sectionTitle: string;
   sectionOrder: number;
   ingredients: Ingredient[];
