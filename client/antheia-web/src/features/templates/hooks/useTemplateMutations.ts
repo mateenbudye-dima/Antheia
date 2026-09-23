@@ -8,6 +8,7 @@ import {
   type UpdatePrepMethodPayload,
   type CreateEvaluationPayload,
   type UpdateEvaluationPayload,
+  type CreateSectionPayload,
 } from '../api/templatesApi';
 import type { SaveStatus } from '../../../shared/hooks/useAutoSave';
 
@@ -58,6 +59,22 @@ export const useTemplateMutations = (templateId: number) => {
     mutationFn: (payload: UpdateTemplateHeaderDto) =>
       templatesApi.updateTemplateHeader(templateId, payload),
     onSuccess: invalidateTemplate,
+  });
+
+  const addSectionMutation = useMutation({
+    mutationKey,
+    mutationFn: (payload: CreateSectionPayload) =>
+      templatesApi.addSection(templateId, payload),
+    onSuccess: invalidateTemplate,
+  });
+
+  // Delete Mutation
+  const deleteSectionMutation = useMutation({
+    mutationFn: (sectionId: number) => templatesApi.deleteSection(sectionId),
+    onSuccess: () => {
+      // Invalidate template query so UI, tree, and sections re-sync automatically
+      queryClient.invalidateQueries({ queryKey: ['template', templateId] });
+    },
   });
 
   const addIngredientMutation = useMutation({
@@ -123,6 +140,10 @@ export const useTemplateMutations = (templateId: number) => {
     // Header
     updateHeader: updateHeaderMutation.mutate,
     updateHeaderAsync: updateHeaderMutation.mutateAsync,
+
+    //Section
+    addSection: addSectionMutation.mutate,
+    deleteSection: deleteSectionMutation.mutate,
 
     // Ingredients
     addIngredient: addIngredientMutation.mutate,

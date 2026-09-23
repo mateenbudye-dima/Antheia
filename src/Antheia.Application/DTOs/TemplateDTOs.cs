@@ -1,4 +1,6 @@
-﻿namespace Antheia.Application.DTOs;
+﻿using Antheia.Domain.Enums;
+
+namespace Antheia.Application.DTOs;
 
 public record UpdateTemplateHeaderDto(
     string Title,
@@ -7,9 +9,8 @@ public record UpdateTemplateHeaderDto(
 );
 
 public record AddSectionDto(
-    byte SectionTypeId,
-    string SectionTitle,
-    byte SectionOrder
+    SectionType SectionTypeId,
+    string SectionTitle
 );
 
 public record IngredientDto(
@@ -27,7 +28,7 @@ public record PrepMethodDto(
 );
 
 public record EvaluationDto(
-    int EvaluationParameterType,
+    string EvaluationParameter,
     string? Result,
     string? Specification,
     string? Status

@@ -6,13 +6,14 @@ namespace Antheia.Application.DTOs;
 
 public record CreateEvaluationDto(
     int SectionId,
-    int EvaluationParameterType,
+    string EvaluationParameter,
     string? Specification,
     string? Result,
     string? Status
 );
 
 public record UpdateEvaluationDto(
+    string EvaluationParameter,
     string? Specification,
     string? Result,
     string? Status
@@ -21,7 +22,7 @@ public record UpdateEvaluationDto(
 public record EvaluationResponseDto(
     int EvaluationId,
     int SectionId,
-    int EvaluationParameterType,
+    string EvaluationParameter,
     string? Specification,
     string? Result,
     string? Status

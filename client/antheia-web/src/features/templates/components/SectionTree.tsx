@@ -8,10 +8,12 @@ import {
   Paper,
   Typography,
   Box,
+  IconButton,
 } from '@mui/material';
 import ExpandLess from '@mui/icons-material/ExpandLess';
 import ExpandMore from '@mui/icons-material/ExpandMore';
 import FolderIcon from '@mui/icons-material/Folder';
+import FolderOpenIcon from '@mui/icons-material/FolderOpen';
 import ArticleIcon from '@mui/icons-material/Article';
 
 export interface SectionNode {
@@ -39,49 +41,86 @@ const TreeItem: React.FC<TreeItemProps> = ({
   selectedSectionId,
   onSelectSection,
 }) => {
-  const hasChildren = node.children && node.children.length > 0;
+  const hasChildren = Boolean(node.children && node.children.length > 0);
   const [open, setOpen] = useState(true);
 
-  const handleClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (hasChildren) {
-      setOpen((prev) => !prev);
-    }
+  const isSelected = selectedSectionId === node.id;
+
+  // Handles selecting the section item
+  const handleItemClick = () => {
     onSelectSection(node.id);
   };
 
-  const isSelected = selectedSectionId === node.id;
+  // Handles expanding/collapsing folders independently without selecting the item
+  const handleToggleExpand = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setOpen((prev) => !prev);
+  };
 
   return (
     <>
       <ListItemButton
         selected={isSelected}
-        onClick={handleClick}
+        onClick={handleItemClick}
+        aria-selected={isSelected}
+        aria-expanded={hasChildren ? open : undefined}
         sx={{
-          pl: level * 2 + 2,
+          pl: level * 2 + 1.5,
           py: 0.75,
           borderRadius: 1,
           mb: 0.5,
+          transition: 'background-color 0.15s ease',
           '&.Mui-selected': {
-            backgroundColor: 'primary.light',
+            backgroundColor: 'primary.main',
             color: 'primary.contrastText',
             '& .MuiListItemIcon-root': {
               color: 'primary.contrastText',
             },
+            '& .MuiIconButton-root': {
+              color: 'primary.contrastText',
+            },
             '&:hover': {
-              backgroundColor: 'primary.main',
+              backgroundColor: 'primary.dark',
             },
           },
         }}
       >
         <ListItemIcon sx={{ minWidth: 32 }}>
-          {hasChildren ? <FolderIcon fontSize="small" /> : <ArticleIcon fontSize="small" />}
+          {hasChildren ? (
+            open ? (
+              <FolderOpenIcon fontSize="small" />
+            ) : (
+              <FolderIcon fontSize="small" />
+            )
+          ) : (
+            <ArticleIcon fontSize="small" />
+          )}
         </ListItemIcon>
+
         <ListItemText
           primary={node.title}
-          sx={{ primaryTypographyProps: { variant: 'body2', fontWeight: isSelected ? 'bold' : 'normal' } }}
+          slotProps={{
+            primary: {
+              variant: 'body2',
+              sx: {
+                fontWeight: isSelected ? 600 : 400,
+              },
+              noWrap: true,
+              title: node.title, // Native tooltip on overflow hover
+            },
+          }}
         />
-        {hasChildren ? open ? <ExpandLess fontSize="small" /> : <ExpandMore fontSize="small" /> : null}
+
+        {hasChildren && (
+          <IconButton
+            size="small"
+            onClick={handleToggleExpand}
+            sx={{ p: 0.25, ml: 0.5 }}
+            aria-label={open ? 'Collapse section' : 'Expand section'}
+          >
+            {open ? <ExpandLess fontSize="small" /> : <ExpandMore fontSize="small" />}
+          </IconButton>
+        )}
       </ListItemButton>
 
       {hasChildren && (
@@ -116,23 +155,48 @@ export const SectionTree: React.FC<SectionTreeProps> = ({
         height: '100%',
         minHeight: 'calc(100vh - 180px)',
         overflowY: 'auto',
+        display: 'flex',
+        flexDirection: 'column',
       }}
     >
-      <Box sx={{ px: 1, pb: 1, borderBottom: '1px solid', borderColor: 'divider', mb: 1 }}>
-        <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 'bold' }}>
+      <Box
+        sx={{
+          px: 1,
+          pb: 1,
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+          mb: 1,
+        }}
+      >
+        <Typography
+          variant="subtitle2"
+          color="text.secondary"
+          sx={{ fontWeight: 'bold', letterSpacing: 0.5 }}
+        >
           TEMPLATE SECTIONS
         </Typography>
       </Box>
-      <List component="nav" dense>
-        {sections.map((node) => (
-          <TreeItem
-            key={node.id}
-            node={node}
-            selectedSectionId={selectedSectionId}
-            onSelectSection={onSelectSection}
-          />
-        ))}
-      </List>
+
+      {sections.length === 0 ? (
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{ px: 1, py: 2, fontStyle: 'italic' }}
+        >
+          No sections available
+        </Typography>
+      ) : (
+        <List component="nav" dense disablePadding sx={{ flexGrow: 1 }}>
+          {sections.map((node) => (
+            <TreeItem
+              key={node.id}
+              node={node}
+              selectedSectionId={selectedSectionId}
+              onSelectSection={onSelectSection}
+            />
+          ))}
+        </List>
+      )}
     </Paper>
   );
 };

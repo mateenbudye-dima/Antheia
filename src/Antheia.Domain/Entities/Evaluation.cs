@@ -9,7 +9,7 @@ public partial class Evaluation
 
     public int SectionId { get; set; }
 
-    public int EvaluationParameterType { get; set; }
+    public string EvaluationParameter { get; set; } = " ";
 
     public string? Result { get; set; }
 

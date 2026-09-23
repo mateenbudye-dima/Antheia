@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Antheia.Domain.Enums;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -15,7 +16,7 @@ namespace Antheia.Application.DTOs
 
     public record SectionEditDto(
         int SectionId,
-        byte SectionTypeId,
+        SectionType SectionTypeId,
         string SectionTitle,
         byte? SectionOrder,
         List<IngredientEditDto> Ingredients,
@@ -41,7 +42,7 @@ namespace Antheia.Application.DTOs
 
     public record EvaluationEditDto(
         int EvaluationId,
-        int EvaluationParameterType,
+        string EvaluationParameter,
         string? Result,
         string? Specification,
         string? Status

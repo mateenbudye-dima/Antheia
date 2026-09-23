@@ -6,7 +6,10 @@ export interface UpdateTemplateHeaderDto {
   objective: string;
   description: string;
 }
-
+export interface CreateSectionPayload {
+  sectionTitle: string;
+  sectionTypeId: 1 | 2 | 3; // 1: Ingredients, 2: Prep, 3: Evaluation
+}
 // DTOs for create & update payloads
 export interface CreateIngredientPayload {
   sectionId: number;
@@ -32,13 +35,14 @@ export interface UpdatePrepMethodPayload {
 
 export interface CreateEvaluationPayload {
   sectionId: number;
-  evaluationParameterType: number;
+  evaluationParameter: string;
   specification: string;
   result?: string | null;
   status?: string | null;
 }
 
 export interface UpdateEvaluationPayload {
+  evaluationParameter: string;
   specification?: string;
   result?: string | null;
   status?: string | null;
@@ -61,6 +65,14 @@ export const templatesApi = {
     await apiClient.patch(`/templates/${templateId}/header`, payload);
   },
 
+  addSection: async (templateId: number, payload: CreateSectionPayload): Promise<void> => {
+    await apiClient.post(`/templates/${templateId}/sections`, payload);
+  },
+
+  deleteSection: async (sectionId: number): Promise<void> => {
+    await apiClient.delete(`/templates/sections/${sectionId}`);
+  },
+  
   // ==========================================
   // 3. INGREDIENTS SECTION
   // ==========================================

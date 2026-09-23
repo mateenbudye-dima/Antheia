@@ -5,6 +5,7 @@ using Antheia.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Antheia.Application.Exceptions;
 using Microsoft.Extensions.Logging;
+using Antheia.Domain.Enums;
 
 namespace Antheia.Infrastructure.Services;
 
@@ -51,8 +52,8 @@ public class TemplateService : ITemplateService
             var ingredientsSection = new SectionRecord
             {
                 ContainerId = template.TemplateId,
-                ContainerTypeId = 1, // 1 = Template Container
-                SectionTypeId = 1,
+                ContainerTypeId = SectionContainerType.Template,
+                SectionTypeId = SectionType.Ingredient,
                 SectionTitle = "Ingredients",
                 SectionOrder = 1,
                 IsActive = true,
@@ -67,8 +68,8 @@ public class TemplateService : ITemplateService
             var prepSection = new SectionRecord
             {
                 ContainerId = template.TemplateId,
-                ContainerTypeId = 1,
-                SectionTypeId = 2,
+                ContainerTypeId = SectionContainerType.Template,
+                SectionTypeId = SectionType.PreparationMethod,
                 SectionTitle = "Preparation Method",
                 SectionOrder = 2,
                 IsActive = true,
@@ -83,8 +84,8 @@ public class TemplateService : ITemplateService
             var evalSection = new SectionRecord
             {
                 ContainerId = template.TemplateId,
-                ContainerTypeId = 1,
-                SectionTypeId = 3,
+                ContainerTypeId = SectionContainerType.Template,
+                SectionTypeId = SectionType.Evaluation,
                 SectionTitle = "Emulsifier Blend Evaluation",
                 SectionOrder = 3,
                 IsActive = true,
@@ -108,14 +109,13 @@ public class TemplateService : ITemplateService
                 "Hard Water Stability"
             };
 
-            int paramTypeIndex = 1;
             foreach (var paramName in defaultEvaluationParams)
             {
                 _context.Evaluations.Add(new Evaluation
                 {
                     SectionId = evalSection.SectionId,
-                    EvaluationParameterType = paramTypeIndex++,
-                    Specification = paramName,
+                    EvaluationParameter = paramName,
+                    Specification = string.Empty,
                     IsActive = true,
                     CreatedBy = _currentUser.UserId,
                     UpdatedBy = _currentUser.UserId,
@@ -193,39 +193,136 @@ public class TemplateService : ITemplateService
     // 3. Creates a new section container
     public async Task<int> AddSectionAsync(int templateId, AddSectionDto dto)
     {
+        _logger.LogInformation("AddSectionAsync started for TemplateId:{TemplateId}, SectionType:{SectionType} by User:{UserId}",
+            templateId, dto.SectionTypeId, _currentUser.UserId);
+
+        // 1. Validate Template Existence
+        var templateExists = await _context.TemplateRecords
+            .AnyAsync(t => t.TemplateId == templateId && t.OrganizationId == _currentUser.OrganizationId && t.IsActive);
+
+        if (!templateExists)
+        {
+            throw new KeyNotFoundException($"Template with ID {templateId} was not found.");
+        }
+
+        // 2. Prevent Duplicate Section Types
+        var existingSectionTypes = await _context.SectionRecords
+            .Where(s => s.ContainerId == templateId && s.ContainerTypeId == SectionContainerType.Template && s.IsActive)
+            .Select(s => s.SectionTypeId)
+            .ToListAsync();
+
+        //if (existingSectionTypes.Contains(dto.SectionType))
+        //{
+        //    throw new InvalidOperationException($"Section of type '{dto.SectionType}' already exists on this template.");
+        //}
+
+        // Determine SectionOrder (put it after the last section)
+        int maxOrder = await _context.SectionRecords
+            .Where(s => s.ContainerId == templateId && s.ContainerTypeId == SectionContainerType.Template && s.IsActive)
+            .Select(s => (int?)s.SectionOrder)
+            .MaxAsync() ?? 0;
+
+        using var transaction = await _context.Database.BeginTransactionAsync();
+
         try
         {
+            // 3. Create Section Record based on SectionType
             var section = new SectionRecord
             {
-            ContainerId = templateId,
-            ContainerTypeId = 1, // 1 = Template Container
-            SectionTypeId = dto.SectionTypeId,
-            SectionTitle = dto.SectionTitle,
-            SectionOrder = dto.SectionOrder,
-            IsActive = true,
-            CreatedBy = _currentUser.UserId,
-            CreatedDate = DateTime.UtcNow,
-            UpdatedBy = _currentUser.UserId,
-            UpdatedDate = DateTime.UtcNow
+                ContainerId = templateId,
+                ContainerTypeId = SectionContainerType.Template,
+                SectionTypeId = dto.SectionTypeId,
+                SectionTitle = GetSectionTitle(dto.SectionTypeId),
+                SectionOrder = (byte)(maxOrder + 1),
+                IsActive = true,
+                CreatedBy = _currentUser.UserId,
+                UpdatedBy = _currentUser.UserId,
+                CreatedDate = DateTime.UtcNow,
+                UpdatedDate = DateTime.UtcNow
             };
 
             _context.SectionRecords.Add(section);
+            await _context.SaveChangesAsync(); // Generates SectionId
+
+            // 4. Seed Specific Defaults Depending on Section Type
+            switch (dto.SectionTypeId)
+            {
+                case SectionType.Ingredient:
+                    // Ingredients start empty or ready for user input
+                    break;
+
+                case SectionType.PreparationMethod:
+                    _context.PreparationMethods.Add(new PreparationMethod
+                    {
+                        SectionId = section.SectionId,
+                        IsActive = true,
+                        CreatedBy = _currentUser.UserId,
+                        UpdatedBy = _currentUser.UserId,
+                        CreatedDate = DateTime.UtcNow,
+                        UpdatedDate = DateTime.UtcNow
+                    });
+                    break;
+
+                case SectionType.Evaluation:
+                    var defaultParams = new[]
+                    {
+                    "Appearance",
+                    "pH",
+                    "Solubility",
+                    "Compatibility",
+                    "Emulsion Test",
+                    "Hard Water Stability"
+                    };
+
+                    foreach (var paramName in defaultParams)
+                    {
+                        _context.Evaluations.Add(new Evaluation
+                        {
+                            SectionId = section.SectionId,
+                            EvaluationParameter = paramName,
+                            Specification = string.Empty,
+                            IsActive = true,
+                            CreatedBy = _currentUser.UserId,
+                            UpdatedBy = _currentUser.UserId,
+                            CreatedDate = DateTime.UtcNow,
+                            UpdatedDate = DateTime.UtcNow
+                        });
+                    }
+                    break;
+            }
+
             await _context.SaveChangesAsync();
-            _logger.LogInformation("AddSectionAsync: created SectionId:{SectionId} for TemplateId:{TemplateId}", section.SectionId, templateId);
+            await transaction.CommitAsync();
+
+            _logger.LogInformation("AddSectionAsync succeeded: SectionId:{SectionId} created for TemplateId:{TemplateId}",
+                section.SectionId, templateId);
+
             return section.SectionId;
         }
         catch (Exception ex)
         {
+            await transaction.RollbackAsync();
             _logger.LogError(ex, "AddSectionAsync failed for TemplateId:{TemplateId}", templateId);
             throw;
         }
     }
 
+    private static string GetSectionTitle(SectionType sectionType) => sectionType switch
+    {
+        SectionType.Ingredient => "Ingredients",
+        SectionType.PreparationMethod => "Preparation Method",
+        SectionType.Evaluation => "Emulsifier Blend Evaluation",
+        _ => "Section"
+    };
+
     // 4. Soft deletes a section
     public async Task DeleteSectionAsync(int sectionId)
     {
         var section = await _context.SectionRecords.FindAsync(sectionId);
-        if (section == null) return;
+        if (section == null)
+        {
+            throw new KeyNotFoundException($"Active section with ID {sectionId}");
+        }
 
         section.IsActive = false;
         section.UpdatedBy = _currentUser.UserId;
@@ -324,7 +421,7 @@ public class TemplateService : ITemplateService
             var newEntries = (evaluations ?? Enumerable.Empty<EvaluationDto>()).Select(e => new Evaluation
             {
                 SectionId = sectionId,
-                EvaluationParameterType = e.EvaluationParameterType,
+                EvaluationParameter = e.EvaluationParameter,
                 Result = e.Result,
                 Specification = e.Specification,
                 Status = e.Status,
@@ -392,7 +489,7 @@ public class TemplateService : ITemplateService
 
             var sections = await _context.SectionRecords
                 .AsNoTracking()
-                .Where(s => s.ContainerId == templateId && s.ContainerTypeId == 1 && s.IsActive)
+                .Where(s => s.ContainerId == templateId && s.ContainerTypeId == SectionContainerType.Template && s.IsActive)
                 .OrderBy(s => s.SectionOrder)
                 .ToListAsync();
 
@@ -425,7 +522,7 @@ public class TemplateService : ITemplateService
                            .Select(p => new PrepMethodEditDto(p.PreparationId, p.AdditionSequence, p.MixingSpeed, p.MixingTime, p.Temperature))
                            .FirstOrDefault(),
                 evaluations.Where(e => e.SectionId == s.SectionId)
-                           .Select(e => new EvaluationEditDto(e.EvaluationId, e.EvaluationParameterType, e.Result, e.Specification, e.Status))
+                           .Select(e => new EvaluationEditDto(e.EvaluationId, e.EvaluationParameter, e.Result, e.Specification, e.Status))
                            .ToList()
             )).ToList();
 
@@ -599,7 +696,7 @@ public class TemplateService : ITemplateService
             var evaluation = new Evaluation
             {
             SectionId = dto.SectionId,
-            EvaluationParameterType = dto.EvaluationParameterType,
+            EvaluationParameter = dto.EvaluationParameter,
             Specification = dto.Specification,
             Result = dto.Result,
             Status = dto.Status,
@@ -617,7 +714,7 @@ public class TemplateService : ITemplateService
             return new EvaluationResponseDto(
                 evaluation.EvaluationId,
                 evaluation.SectionId,
-                evaluation.EvaluationParameterType,
+                evaluation.EvaluationParameter,
                 evaluation.Specification,
                 evaluation.Result,
                 evaluation.Status
@@ -644,6 +741,7 @@ public class TemplateService : ITemplateService
                 throw new NotFoundException($"Evaluation record with ID {evaluationId} not found.");
             }
 
+            evaluation.EvaluationParameter = dto.EvaluationParameter;
             evaluation.Specification = dto.Specification;
             evaluation.Result = dto.Result;
             evaluation.Status = dto.Status;

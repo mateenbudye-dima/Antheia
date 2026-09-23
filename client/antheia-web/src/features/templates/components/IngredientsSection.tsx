@@ -8,7 +8,6 @@ import {
   TableHead,
   TableRow,
   Button,
-  Typography,
   Box,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
@@ -58,10 +57,7 @@ export const IngredientsSection: React.FC<Props> = ({ templateId, sectionId, ini
   };
 
   return (
-    <Paper sx={{ p: 2, mt: 3 }} variant="outlined">
-      <Typography variant="h6" gutterBottom>
-        1. Ingredients
-      </Typography>
+    <Paper sx={{ p: 2, mt: 3 }} variant="outlined">      
       <TableContainer>
         <Table size="small">
           <TableHead>

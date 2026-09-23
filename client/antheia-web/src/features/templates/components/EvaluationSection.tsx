@@ -8,7 +8,6 @@ import {
   TableHead,
   TableRow,
   Button,
-  Typography,
   Box,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
@@ -31,8 +30,8 @@ export const EvaluationSection: React.FC<Props> = ({ templateId, sectionId, init
     try {
       const newEvaluation = await addEvaluationAsync({
         sectionId,
-        evaluationParameterType: 1,
-        specification: 'Parameter Name',
+        evaluationParameter: 'Parameter Name',
+        specification: '',
         result: '',
         status: 'Pending',
       });
@@ -59,15 +58,13 @@ export const EvaluationSection: React.FC<Props> = ({ templateId, sectionId, init
 
   return (
     <Paper sx={{ p: 2, mt: 3 }} variant="outlined">
-      <Typography variant="h6" gutterBottom>
-        3. Evaluation Parameters & Results
-      </Typography>
       <TableContainer>
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell style={{ width: '40%' }}>Specification / Parameter</TableCell>
+              <TableCell style={{ width: '40%' }}>Parameter</TableCell>
               <TableCell style={{ width: '30%' }}>Result</TableCell>
+              <TableCell style={{ width: '40%' }}>Specification</TableCell>
               <TableCell style={{ width: '15%' }}>Status</TableCell>
               <TableCell align="center" style={{ width: '5%' }}>Actions</TableCell>
             </TableRow>

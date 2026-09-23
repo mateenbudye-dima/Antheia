@@ -1,5 +1,6 @@
 ﻿using Antheia.Application.DTOs;
 using Antheia.Application.Interfaces;
+using Antheia.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -75,6 +76,82 @@ public class TemplatesController : ControllerBase
 
         _logger.LogInformation("UpdateHeader: template {TemplateId} updated", templateId);
         return NoContent(); // 204 No Content for successful auto-save updates
+    }
+
+    /// <summary>
+    /// Adds a new section to an existing formulation template draft.
+    /// Endpoint: POST /api/templates/sections
+    /// </summary>
+    [HttpPost("{templateId:int}/sections")]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> AddSection(int templateId, [FromBody] AddSectionDto dto)
+    {
+        // 1. Basic validation
+        if (dto == null || templateId <= 0)
+        {
+            return BadRequest(new { message = "Invalid template parameters provided." });
+        }
+
+        // Enum range validation
+        if (dto.SectionTypeId == SectionType.Unknown || !Enum.IsDefined(typeof(SectionType), dto.SectionTypeId))
+        {
+            return BadRequest(new { message = "Invalid SectionType provided." });
+        }
+
+        try
+        {
+            int newSectionId = await _templateService.AddSectionAsync(templateId, dto);
+
+            return CreatedAtAction(
+                nameof(GetTemplateForEdit),
+                new { templateId = templateId },
+                new { sectionId = newSectionId, templateId, sectionType = dto.SectionTypeId }
+            );
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            // Handles duplicate section validation exceptions from the service
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Deletes a specific section from a formulation template draft.
+    /// Endpoint: DELETE /api/templates/{templateId}/sections/{sectionId}
+    /// </summary>
+    [HttpDelete("sections/{sectionId:int}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteSection(int sectionId)
+    {
+        // 1. Basic validation
+        if (sectionId <= 0)
+        {
+            return BadRequest(new { message = "Invalid templateId or sectionId provided." });
+        }
+
+        try
+        {
+            // Pass both if service verifies section belongs to template
+            await _templateService.DeleteSectionAsync(sectionId);
+
+            return Ok(new { message = "Section deleted successfully." });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     // ==========================================

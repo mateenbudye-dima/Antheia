@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Paper, Grid, TextField, Typography, Box, InputAdornment } from '@mui/material';
+import { Paper, Grid, TextField, InputAdornment } from '@mui/material';
 import type { PreparationMethod } from '../types/template.types';
 import { useAutoSave } from '../../../shared/hooks/useAutoSave';
 import { useTemplateMutations } from '../hooks/useTemplateMutations';
@@ -31,10 +31,6 @@ export const PrepMethodSection: React.FC<{templateId:number, prepData: Preparati
 
   return (
     <Paper sx={{ p: 2, mt: 3 }} variant="outlined">
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h6">2. Preparation Method</Typography>
-      </Box>
-
       <Grid container spacing={2}>
         <Grid size={{ xs: 12, sm: 6 }}>
           <TextField

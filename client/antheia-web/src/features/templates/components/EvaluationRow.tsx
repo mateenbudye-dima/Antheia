@@ -22,6 +22,7 @@ export const EvaluationRow: React.FC<EvaluationRowProps> = ({ templateId, item, 
         await updateEvaluationAsync({
           evaluationId:debounced.evaluationId, 
           payload: {
+          evaluationParameter: debounced.evaluationParameter,
           specification: debounced.specification,
           result: debounced.result,
           status: debounced.status,
@@ -36,8 +37,8 @@ export const EvaluationRow: React.FC<EvaluationRowProps> = ({ templateId, item, 
         <TextField
           size="small"
           fullWidth
-          value={item.specification ?? ''}
-          onChange={(e) => onChange(item.evaluationId, 'specification', e.target.value)}
+          value={item.evaluationParameter ?? ''}
+          onChange={(e) => onChange(item.evaluationId, 'evaluationParameter', e.target.value)}
         />
       </TableCell>
       <TableCell>
@@ -46,6 +47,14 @@ export const EvaluationRow: React.FC<EvaluationRowProps> = ({ templateId, item, 
           fullWidth
           value={item.result ?? ''}
           onChange={(e) => onChange(item.evaluationId, 'result', e.target.value)}
+        />
+      </TableCell>
+      <TableCell>
+        <TextField
+          size="small"
+          fullWidth
+          value={item.specification ?? ''}
+          onChange={(e) => onChange(item.evaluationId, 'specification', e.target.value)}
         />
       </TableCell>
       <TableCell>

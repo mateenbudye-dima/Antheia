@@ -43,19 +43,49 @@ const TemplateEditContent: React.FC = () => {
 
   const templateId = useMemo(() => (id ? parseInt(id, 10) : null), [id]);
 
-  // Build Tree Structure
+  // Helper function to resolve human-readable labels for section types
+  const getSectionTypeLabel = (typeId: number): string => {
+    switch (typeId) {
+      case 1:
+        return 'Ingredients';
+      case 2:
+        return 'Preparation Method';
+      case 3:
+        return 'Evaluation Parameters';
+      default:
+        return 'Section';
+    }
+  };
+
+  // ✅ FIXED: Dynamically map using sec.sectionId (Database Primary Key) instead of hardcoded type IDs
   const treeSections: SectionNode[] = useMemo(() => {
     const nodes: SectionNode[] = [{ id: 'header', title: 'Header & Overview' }];
 
-    if (data?.sections) {
+    if (data?.sections && data.sections.length > 0) {
+      // 1. Calculate counts for each section type
+      const typeCounts: Record<number, number> = {};
       data.sections.forEach((sec) => {
-        if (sec.sectionTypeId === 1) {
-          nodes.push({ id: 'section_1', title: 'Ingredients' });
-        } else if (sec.sectionTypeId === 2) {
-          nodes.push({ id: 'section_2', title: 'Preparation Method' });
-        } else if (sec.sectionTypeId === 3) {
-          nodes.push({ id: 'section_3', title: 'Evaluation Parameters' });
+        typeCounts[sec.sectionTypeId] = (typeCounts[sec.sectionTypeId] || 0) + 1;
+      });
+
+      const currentTypeIndex: Record<number, number> = {};
+
+      // 2. Build unique node for EVERY section item
+      data.sections.forEach((sec) => {
+        const baseTitle = sec.sectionTitle || getSectionTypeLabel(sec.sectionTypeId);
+        const totalOfThisType = typeCounts[sec.sectionTypeId] || 0;
+
+        let title = baseTitle;
+        // Append sequential numbers if there are duplicates (e.g., "Ingredients (1)", "Ingredients (2)")
+        if (totalOfThisType > 1) {
+          currentTypeIndex[sec.sectionTypeId] = (currentTypeIndex[sec.sectionTypeId] || 0) + 1;
+          title = `${baseTitle} (${currentTypeIndex[sec.sectionTypeId]})`;
         }
+
+        nodes.push({
+          id: String(sec.sectionId), // 👈 Unique database section ID
+          title,
+        });
       });
     }
 
@@ -155,9 +185,9 @@ const TemplateEditContent: React.FC = () => {
       sx={{
         display: 'flex',
         flexDirection: 'column',
-        height: 'calc(100vh - 80px)', // Adjust 80px according to your main top Navbar height
+        height: 'calc(100vh - 80px)',
         width: '100%',
-        overflow: 'hidden', // Prevents double scrollbars on main window
+        overflow: 'hidden',
       }}
     >
       {/* Sticky Header Box */}
@@ -193,11 +223,12 @@ const TemplateEditContent: React.FC = () => {
           py: { xs: 1, sm: 1 },
         }}
       >
-          <TemplateEditor
-            data={data}
-            selectedSectionId={selectedSectionId}
-            viewMode={viewMode}
-          />
+        <TemplateEditor
+          data={data}
+          selectedSectionId={selectedSectionId}
+          viewMode={viewMode}
+          onSectionDeleted={() => setSelectedSection('header')}
+        />
       </Box>
     </Box>
   );

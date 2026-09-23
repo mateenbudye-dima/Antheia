@@ -16,7 +16,7 @@ export interface PreparationMethod {
 
 export interface EvaluationItem {
   evaluationId: number;
-  evaluationParameterType: number;
+  evaluationParameter: string;
   result: string | null;
   specification: string;
   status: string | null;

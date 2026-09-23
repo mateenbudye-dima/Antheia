@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Antheia.Domain.Enums;
+using System;
 using System.Collections.Generic;
 
 namespace Antheia.Domain.Entities;
@@ -9,11 +10,11 @@ public partial class SectionRecord
 
     public int ContainerId { get; set; }
 
-    public byte ContainerTypeId { get; set; }
+    public SectionContainerType ContainerTypeId { get; set; }
 
     public byte? SectionOrder { get; set; }
 
-    public byte SectionTypeId { get; set; }
+    public SectionType SectionTypeId { get; set; }
 
     public string SectionTitle { get; set; } = null!;
 
