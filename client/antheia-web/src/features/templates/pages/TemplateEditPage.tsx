@@ -151,28 +151,54 @@ const TemplateEditContent: React.FC = () => {
   }
 
   return (
-    <Box sx={{ width: '100%' }}>
-      <EditorHeader
-        title={data.title}
-        templateId={templateId}
-        viewMode={viewMode}
-        isMobile={isMobile}
-        isSidebarCollapsed={isSidebarCollapsed}
-        onToggleSidebar={handleToggleClick}
-        onBack={() => navigate('/templates')}
-        onViewModeChange={(_e, newMode) => newMode && setViewMode(newMode)}
-      />
-
-      <Paper
-        variant="outlined"
-        sx={{ p: { xs: 2, sm: 3 }, minHeight: 'calc(100vh - 160px)' }}
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: 'calc(100vh - 80px)', // Adjust 80px according to your main top Navbar height
+        width: '100%',
+        overflow: 'hidden', // Prevents double scrollbars on main window
+      }}
+    >
+      {/* Sticky Header Box */}
+      <Box
+        sx={{
+          position: 'sticky',
+          top: 0,
+          zIndex: (theme) => theme.zIndex.appBar - 1,
+          backgroundColor: 'background.paper',
+          py: 1,
+          px: { xs: 1, sm: 2 },
+          borderBottom: 1,
+          borderColor: 'divider',
+        }}
       >
-        <TemplateEditor
-          data={data}
-          selectedSectionId={selectedSectionId}
+        <EditorHeader
+          title={data.title}
+          templateId={templateId}
           viewMode={viewMode}
+          isMobile={isMobile}
+          isSidebarCollapsed={isSidebarCollapsed}
+          onToggleSidebar={handleToggleClick}
+          onBack={() => navigate('/templates')}
+          onViewModeChange={(_e, newMode) => newMode && setViewMode(newMode)}
         />
-      </Paper>
+      </Box>
+
+      {/* Independently Scrollable Editor Box */}
+      <Box
+        sx={{
+          flexGrow: 1,
+          overflowY: 'auto',
+          py: { xs: 1, sm: 1 },
+        }}
+      >
+          <TemplateEditor
+            data={data}
+            selectedSectionId={selectedSectionId}
+            viewMode={viewMode}
+          />
+      </Box>
     </Box>
   );
 };
