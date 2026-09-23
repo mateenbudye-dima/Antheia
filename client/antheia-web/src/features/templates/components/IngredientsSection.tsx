@@ -70,7 +70,6 @@ export const IngredientsSection: React.FC<Props> = ({ templateId, sectionId, ini
               <TableCell style={{ width: '25%' }}>Type</TableCell>
               <TableCell style={{ width: '15%' }}>Ratio (%)</TableCell>
               <TableCell style={{ width: '15%' }}>Qty (g)</TableCell>
-              <TableCell align="center" style={{ width: '10%' }}>Status</TableCell>
               <TableCell align="center" style={{ width: '5%' }}>Actions</TableCell>
             </TableRow>
           </TableHead>

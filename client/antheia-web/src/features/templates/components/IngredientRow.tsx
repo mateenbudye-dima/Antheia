@@ -3,7 +3,6 @@ import { TableRow, TableCell, TextField, IconButton, Tooltip } from '@mui/materi
 import DeleteIcon from '@mui/icons-material/Delete';
 import type { Ingredient } from '../types/template.types';
 import { useAutoSave } from '../../../shared/hooks/useAutoSave';
-import { StatusBadge } from '../../../shared/components/StatusBadge';
 import { useTemplateMutations } from '../hooks/useTemplateMutations';
 
 interface IngredientRowProps {
@@ -16,7 +15,7 @@ interface IngredientRowProps {
 export const IngredientRow: React.FC<IngredientRowProps> = ({templateId, item, onChange, onDelete }) => {
   const { updateIngredientAsync } = useTemplateMutations(templateId);
   
-  const { status } = useAutoSave({
+  useAutoSave({
     value: item,
     delay: 800,
     onSave: async (debouncedItem) => {
@@ -67,9 +66,6 @@ export const IngredientRow: React.FC<IngredientRowProps> = ({templateId, item, o
           value={item.quantity ?? ''}
           onChange={(e) => onChange(item.sectionIngredientId, 'quantity', parseFloat(e.target.value) || 0)}
         />
-      </TableCell>
-      <TableCell align="center">
-        <StatusBadge status={status} />
       </TableCell>
       <TableCell align="center">
         <Tooltip title="Delete row">

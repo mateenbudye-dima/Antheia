@@ -3,7 +3,6 @@ import { TableRow, TableCell, TextField, Select, MenuItem, IconButton, Tooltip }
 import DeleteIcon from '@mui/icons-material/Delete';
 import type { EvaluationItem } from '../types/template.types';
 import { useAutoSave } from '../../../shared/hooks/useAutoSave';
-import { StatusBadge } from '../../../shared/components/StatusBadge';
 import { useTemplateMutations } from '../hooks/useTemplateMutations';
 
 interface EvaluationRowProps {
@@ -14,9 +13,9 @@ interface EvaluationRowProps {
 }
 
 export const EvaluationRow: React.FC<EvaluationRowProps> = ({ templateId, item, onChange, onDelete }) => {
-    const { updateEvaluationAsync } = useTemplateMutations(templateId);
+  const { updateEvaluationAsync } = useTemplateMutations(templateId);
     
-  const { status } = useAutoSave({
+  useAutoSave({
       value: item,
       delay: 800,
       onSave: async (debounced) => {
@@ -60,9 +59,6 @@ export const EvaluationRow: React.FC<EvaluationRowProps> = ({ templateId, item, 
           <MenuItem value="Pass">Pass</MenuItem>
           <MenuItem value="Fail">Fail</MenuItem>
         </Select>
-      </TableCell>
-      <TableCell align="center">
-        <StatusBadge status={status} />
       </TableCell>
       <TableCell align="center">
         <Tooltip title="Delete parameter">

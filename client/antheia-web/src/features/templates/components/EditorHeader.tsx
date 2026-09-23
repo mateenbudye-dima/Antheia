@@ -10,6 +10,8 @@ import {
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ViewListIcon from '@mui/icons-material/ViewList';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
+import { StatusBadge } from '../../../shared/components/StatusBadge';
+import { useTemplateMutations } from '../hooks/useTemplateMutations';
 
 export interface EditorHeaderProps {
   title?: string;
@@ -32,6 +34,9 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
   onBack,
   onViewModeChange,
 }) => {
+  // Read aggregated saveStatus across ALL header/ingredient/prep/eval mutations
+  const { saveStatus } = useTemplateMutations(templateId);
+
   return (
     <Box
       sx={{
@@ -44,16 +49,19 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
       }}
     >
       {/* Left: Section Tree Menu Toggle + Back Button */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>        
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         <Button startIcon={<ArrowBackIcon />} onClick={onBack} size="small">
           Back to Templates
         </Button>
       </Box>
 
-      {/* Center: Title */}
-      <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-        {title ? `Editing: ${title}` : `Editing Template #${templateId}`}
-      </Typography>
+      {/* Center: Title + Global Status Badge */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+        <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+          {title ? `Editing: ${title}` : `Editing Template #${templateId}`}
+        </Typography>
+        <StatusBadge status={saveStatus} />
+      </Box>
 
       {/* Right: View Mode Toggle */}
       <ToggleButtonGroup

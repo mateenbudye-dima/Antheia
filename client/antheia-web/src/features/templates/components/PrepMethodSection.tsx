@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Paper, Grid, TextField, Typography, Box, InputAdornment } from '@mui/material';
 import type { PreparationMethod } from '../types/template.types';
 import { useAutoSave } from '../../../shared/hooks/useAutoSave';
-import { StatusBadge } from '../../../shared/components/StatusBadge';
 import { useTemplateMutations } from '../hooks/useTemplateMutations';
 
 export const PrepMethodSection: React.FC<{templateId:number, prepData: PreparationMethod }> = ({ templateId, prepData }) => {
@@ -10,7 +9,7 @@ export const PrepMethodSection: React.FC<{templateId:number, prepData: Preparati
 
   const {updatePrepMethodAsync} = useTemplateMutations(templateId);
 
-  const { status } = useAutoSave({
+  useAutoSave({
     value: prep,
     delay: 800,
     onSave: async (debouncedPrep) => {
@@ -34,7 +33,6 @@ export const PrepMethodSection: React.FC<{templateId:number, prepData: Preparati
     <Paper sx={{ p: 2, mt: 3 }} variant="outlined">
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Typography variant="h6">2. Preparation Method</Typography>
-        <StatusBadge status={status} />
       </Box>
 
       <Grid container spacing={2}>

@@ -14,22 +14,25 @@ interface UseAutoSaveOptions<T> {
 
 export function useAutoSave<T>({ value, onSave, delay = 800 }: UseAutoSaveOptions<T>) {
   const debouncedValue = useDebounce(value, delay);
-  const isInitialRender = useRef(true);
   const [status, setStatus] = useState<SaveStatus>('idle');
   const [error, setError] = useState<Error | null>(null);
 
   // 1. Keep a ref to the latest onSave callback to prevent stale closures
   const onSaveRef = useRef(onSave);
 
-  // 2. Sync ref whenever onSave changes
+  // 2. Track the previous stringified value to guard against initial mount & identical renders
+  const lastSavedValueRef = useRef<string>(JSON.stringify(value));
+
+  // 3. Sync ref whenever onSave changes
   useEffect(() => {
     onSaveRef.current = onSave;
   }, [onSave]);
 
   useEffect(() => {
-    // 3. Skip saving on initial mount
-    if (isInitialRender.current) {
-      isInitialRender.current = false;
+    const currentStringifiedValue = JSON.stringify(debouncedValue);
+
+    // 4. Skip saving if the debounced value hasn't actually changed from what's already saved
+    if (lastSavedValueRef.current === currentStringifiedValue) {
       return;
     }
 
@@ -40,9 +43,10 @@ export function useAutoSave<T>({ value, onSave, delay = 800 }: UseAutoSaveOption
       setError(null);
 
       try {
-        // 4. Call the ref's current function instead of the raw parameter
         await onSaveRef.current(debouncedValue);
         if (isMounted) {
+          // Update the ref so subsequent renders know this value is already persisted
+          lastSavedValueRef.current = currentStringifiedValue;
           setStatus('saved');
         }
       } catch (err) {
@@ -56,11 +60,10 @@ export function useAutoSave<T>({ value, onSave, delay = 800 }: UseAutoSaveOption
 
     executeSave();
 
-    // 5. Cleanup to handle unmounting mid-request safely
     return () => {
       isMounted = false;
     };
-  }, [debouncedValue]); // Safe from missing dependency warnings
+  }, [debouncedValue]);
 
   return { status, error };
 }

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Paper, Grid, TextField, Typography, Box } from '@mui/material';
 import { useAutoSave } from '../../../shared/hooks/useAutoSave';
-import { StatusBadge } from '../../../shared/components/StatusBadge';
 import { useTemplateMutations } from '../hooks/useTemplateMutations';
 
 interface Props {
@@ -25,7 +24,7 @@ export const HeaderSection: React.FC<Props> = ({
 
   const {updateHeaderAsync} = useTemplateMutations(templateId);
 
-  const { status } = useAutoSave({
+  useAutoSave({
     value: headerData,
     delay: 800,
     onSave: async (debounced) => {
@@ -43,7 +42,6 @@ export const HeaderSection: React.FC<Props> = ({
         <Typography variant="h5" component="h1" sx={{ fontWeight: 'bold' }}>
           Template Header Details
         </Typography>
-        <StatusBadge status={status} />
       </Box>
 
       <Grid container spacing={2}>

@@ -69,7 +69,6 @@ export const EvaluationSection: React.FC<Props> = ({ templateId, sectionId, init
               <TableCell style={{ width: '40%' }}>Specification / Parameter</TableCell>
               <TableCell style={{ width: '30%' }}>Result</TableCell>
               <TableCell style={{ width: '15%' }}>Status</TableCell>
-              <TableCell align="center" style={{ width: '10%' }}>Auto Save</TableCell>
               <TableCell align="center" style={{ width: '5%' }}>Actions</TableCell>
             </TableRow>
           </TableHead>

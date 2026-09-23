@@ -1,4 +1,5 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+// src/features/templates/hooks/useTemplateMutations.ts
+import { useMutation, useQueryClient, useMutationState } from '@tanstack/react-query';
 import {
   templatesApi,
   type UpdateTemplateHeaderDto,
@@ -8,9 +9,40 @@ import {
   type CreateEvaluationPayload,
   type UpdateEvaluationPayload,
 } from '../api/templatesApi';
+import type { SaveStatus } from '../../../shared/hooks/useAutoSave';
 
 export const useTemplateMutations = (templateId: number) => {
   const queryClient = useQueryClient();
+  const mutationKey = ['template-mutation', templateId];
+
+  // 1. STABLE QUERY CACHE SUBSCRIPTION
+  // Use pure primitives inside select so TanStack Query can memoize the output
+  const mutationStates = useMutationState({
+    filters: { mutationKey },
+    select: (mutation) => ({
+      status: mutation.state.status,
+      submittedAt: mutation.state.submittedAt,
+    }),
+  });
+
+  // 2. STABLE COMPUTATIONS (Without inline .sort() mutation)
+  const isSaving = mutationStates.some((m) => m.status === 'pending');
+  const hasError = mutationStates.some((m) => m.status === 'error');
+
+  // Use Math.max or slice() before sorting to avoid inline array mutation
+  const lastSubmittedAt = Math.max(0, ...mutationStates.map((m) => m.submittedAt));
+  const lastMutation = mutationStates.find((m) => m.submittedAt === lastSubmittedAt);
+  const isSuccess = lastMutation?.status === 'success';
+
+  // Compute status
+  let saveStatus: SaveStatus = 'idle';
+  if (isSaving) {
+    saveStatus = 'saving';
+  } else if (hasError) {
+    saveStatus = 'error';
+  } else if (isSuccess) {
+    saveStatus = 'saved';
+  }
 
   // Centralized query cache invalidation helper
   const invalidateTemplate = () => {
@@ -19,39 +51,38 @@ export const useTemplateMutations = (templateId: number) => {
   };
 
   // ==========================================
-  // 1. HEADER MUTATION
+  // MUTATIONS (All using the same mutationKey)
   // ==========================================
   const updateHeaderMutation = useMutation({
+    mutationKey,
     mutationFn: (payload: UpdateTemplateHeaderDto) =>
       templatesApi.updateTemplateHeader(templateId, payload),
     onSuccess: invalidateTemplate,
   });
 
-  // ==========================================
-  // 2. INGREDIENTS MUTATIONS
-  // ==========================================
   const addIngredientMutation = useMutation({
+    mutationKey,
     mutationFn: (payload: CreateIngredientPayload) =>
       templatesApi.addIngredient(payload),
     onSuccess: invalidateTemplate,
   });
 
   const updateIngredientMutation = useMutation({
+    mutationKey,
     mutationFn: ({ id, payload }: { id: number; payload: UpdateIngredientPayload }) =>
       templatesApi.updateIngredient(id, payload),
     onSuccess: invalidateTemplate,
   });
 
   const deleteIngredientMutation = useMutation({
+    mutationKey,
     mutationFn: (ingredientId: number) =>
       templatesApi.deleteIngredient(ingredientId),
     onSuccess: invalidateTemplate,
   });
 
-  // ==========================================
-  // 3. PREPARATION METHOD MUTATIONS
-  // ==========================================
   const updatePrepMethodMutation = useMutation({
+    mutationKey,
     mutationFn: ({
       prepId,
       payload,
@@ -62,16 +93,15 @@ export const useTemplateMutations = (templateId: number) => {
     onSuccess: invalidateTemplate,
   });
 
-  // ==========================================
-  // 4. EVALUATION MUTATIONS
-  // ==========================================
   const addEvaluationMutation = useMutation({
+    mutationKey,
     mutationFn: (payload: CreateEvaluationPayload) =>
       templatesApi.addEvaluation(payload),
     onSuccess: invalidateTemplate,
   });
 
   const updateEvaluationMutation = useMutation({
+    mutationKey,
     mutationFn: ({
       evaluationId,
       payload,
@@ -83,21 +113,18 @@ export const useTemplateMutations = (templateId: number) => {
   });
 
   const deleteEvaluationMutation = useMutation({
+    mutationKey,
     mutationFn: (evaluationId: number) =>
       templatesApi.deleteEvaluation(evaluationId),
     onSuccess: invalidateTemplate,
   });
 
   return {
-    // ------------------------------------------
     // Header
-    // ------------------------------------------
     updateHeader: updateHeaderMutation.mutate,
     updateHeaderAsync: updateHeaderMutation.mutateAsync,
 
-    // ------------------------------------------
     // Ingredients
-    // ------------------------------------------
     addIngredient: addIngredientMutation.mutate,
     addIngredientAsync: addIngredientMutation.mutateAsync,
     updateIngredient: updateIngredientMutation.mutate,
@@ -105,15 +132,11 @@ export const useTemplateMutations = (templateId: number) => {
     deleteIngredient: deleteIngredientMutation.mutate,
     deleteIngredientAsync: deleteIngredientMutation.mutateAsync,
 
-    // ------------------------------------------
-    // Preparation Methods
-    // ------------------------------------------
+    // Prep Methods
     updatePrepMethod: updatePrepMethodMutation.mutate,
     updatePrepMethodAsync: updatePrepMethodMutation.mutateAsync,
 
-    // ------------------------------------------
     // Evaluations
-    // ------------------------------------------
     addEvaluation: addEvaluationMutation.mutate,
     addEvaluationAsync: addEvaluationMutation.mutateAsync,
     updateEvaluation: updateEvaluationMutation.mutate,
@@ -121,17 +144,8 @@ export const useTemplateMutations = (templateId: number) => {
     deleteEvaluation: deleteEvaluationMutation.mutate,
     deleteEvaluationAsync: deleteEvaluationMutation.mutateAsync,
 
-    // ------------------------------------------
-    // Combined Loading / Saving Status
-    // ------------------------------------------
-    isSaving:
-      updateHeaderMutation.isPending ||
-      addIngredientMutation.isPending ||
-      updateIngredientMutation.isPending ||
-      deleteIngredientMutation.isPending ||
-      updatePrepMethodMutation.isPending ||
-      addEvaluationMutation.isPending ||
-      updateEvaluationMutation.isPending ||
-      deleteEvaluationMutation.isPending,
+    // Status Indicators
+    isSaving,
+    saveStatus,
   };
 };
