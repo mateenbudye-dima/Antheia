@@ -1,4 +1,5 @@
 ﻿using Antheia.Application.DTOs;
+using Antheia.Domain.Enums;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -29,4 +30,8 @@ public interface ITemplateService
     Task<EvaluationResponseDto> AddEvaluationAsync(CreateEvaluationDto dto);
     Task<bool> UpdateEvaluationAsync(int evaluationId, UpdateEvaluationDto dto);
     Task<bool> DeleteEvaluationAsync(int evaluationId);
+
+    Task SubmitAsync(int entityId, TemplateStatus submittedFor);
+    Task ApproveAsync(int entityId, string? comments);
+    Task RejectAsync(int entityId, string? comments);
 }

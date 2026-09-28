@@ -6,6 +6,7 @@
   </PropertyGroup>
   
   <ItemGroup>
+    <ProjectReference Include="..\..\WorkFlowAuditMiddleware\WorkFlowAuditMiddleware.csproj" />
     <ProjectReference Include="..\Antheia.Application\Antheia.Application.csproj" />
     <ProjectReference Include="..\Antheia.Domain\Antheia.Domain.csproj" />
   </ItemGroup>

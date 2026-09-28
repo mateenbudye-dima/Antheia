@@ -1,11 +1,11 @@
-﻿using Dima.WorkflowAuditing.Data;
-using Dima.WorkflowAuditing.Middleware;
+﻿using Dima.WorkFlowAuditMiddleware.Data;
+using Dima.WorkFlowAuditMiddleware.Middleware;
 using Dima.WorkFlowAuditMiddleware.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Dima.WorkflowAuditing.Extensions;
+namespace Dima.WorkFlowAuditMiddleware.Extensions;
 
 public static class WorkflowAuditExtensions
 {
@@ -14,7 +14,7 @@ public static class WorkflowAuditExtensions
         services.AddDbContext<AuditDbContext>(options =>
             options.UseSqlServer(connectionString));
 
-        //services.AddScoped<IWorkflowService, WorkflowService>();
+        services.AddScoped<IWorkflowService, WorkflowService>();
 
         return services;
     }

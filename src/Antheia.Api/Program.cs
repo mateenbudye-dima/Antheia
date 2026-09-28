@@ -1,6 +1,8 @@
 using Antheia.Api.Extensions;
 using Antheia.Application;
 using Antheia.Infrastructure;
+using Dima.WorkFlowAuditMiddleware.Data;
+using Dima.WorkFlowAuditMiddleware.Extensions;
 using Serilog;
 using Serilog.Events;
 
@@ -33,6 +35,9 @@ app.UseHttpsRedirection();
 app.UseCors(reactAppCorsPolicy);
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.UseWorkflowAuditing();
+
 app.MapControllers();
 
 // Configure HTTP Pipeline
@@ -49,6 +54,13 @@ if (app.Environment.IsDevelopment())
 try
 {
     Log.Information("Starting web host");
+
+    using (var scope = app.Services.CreateScope())
+    {
+        var dbContext = scope.ServiceProvider.GetRequiredService<AuditDbContext>();
+        await AuditDbInitializer.InitializeAsync(dbContext);
+    }
+
     app.Run();
 }
 catch (Exception ex)

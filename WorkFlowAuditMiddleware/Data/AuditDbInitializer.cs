@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 
-namespace Dima.WorkflowAuditing.Data;
+namespace Dima.WorkFlowAuditMiddleware.Data;
 
 public static class AuditDbInitializer
 {
@@ -18,9 +18,9 @@ public static class AuditDbInitializer
                     [Id] UNIQUEIDENTIFIER NOT NULL CONSTRAINT [PK_AuditLogs] PRIMARY KEY DEFAULT NEWSEQUENTIALID(),
                     [ProjectId] NVARCHAR(100) NOT NULL,
                     [EntityType] NVARCHAR(100) NOT NULL,
-                    [EntityId] NVARCHAR(100) NOT NULL,
+                    [EntityId] BIGINT NOT NULL,
                     [Action] NVARCHAR(50) NOT NULL,
-                    [UserId] NVARCHAR(128) NOT NULL,
+                    [UserId] UNIQUEIDENTIFIER NOT NULL,
                     [UserRoles] NVARCHAR(500) NULL,
                     [Path] NVARCHAR(500) NOT NULL,
                     [HttpMethod] NVARCHAR(10) NOT NULL,
@@ -36,10 +36,10 @@ public static class AuditDbInitializer
                 CREATE TABLE [audit].[ApprovalWorkflows] (
                     [Id] UNIQUEIDENTIFIER NOT NULL CONSTRAINT [PK_ApprovalWorkflows] PRIMARY KEY DEFAULT NEWSEQUENTIALID(),
                     [EntityType] NVARCHAR(100) NOT NULL,
-                    [EntityId] NVARCHAR(100) NOT NULL,
-                    [Status] NVARCHAR(50) NOT NULL CONSTRAINT [DF_ApprovalWorkflows_Status] DEFAULT 'Draft',
-                    [RequestedByUserId] NVARCHAR(128) NOT NULL,
-                    [ReviewedByUserId] NVARCHAR(128) NULL,
+                    [EntityId] BIGINT NOT NULL,
+                    [Status] INT NOT NULL CONSTRAINT [DF_ApprovalWorkflows_Status] DEFAULT 'Draft',
+                    [RequestedByUserId] UNIQUEIDENTIFIER NOT NULL,
+                    [ReviewedByUserId] UNIQUEIDENTIFIER NULL,
                     [ReviewerComments] NVARCHAR(1000) NULL,
                     [CreatedAtUtc] DATETIME2(7) NOT NULL CONSTRAINT [DF_ApprovalWorkflows_CreatedAtUtc] DEFAULT SYSUTCDATETIME(),
                     [ReviewedAtUtc] DATETIME2(7) NULL

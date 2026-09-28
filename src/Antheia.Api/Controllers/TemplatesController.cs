@@ -1,9 +1,11 @@
 ﻿using Antheia.Application.DTOs;
 using Antheia.Application.Interfaces;
 using Antheia.Domain.Enums;
+using Dima.WorkFlowAuditMiddleware.Attributes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using System.Security.Claims;
 
 [Authorize]
 [ApiController]
@@ -278,5 +280,94 @@ public class TemplatesController : ControllerBase
 
         _logger.LogInformation("DeleteEvaluation: evaluation {EvaluationId} soft-deleted", evaluationId);
         return NoContent();
+    }
+
+    /// <summary>
+    /// Submits a template for approval. This action changes the template's status to "SubmittedForApproval" and triggers the workflow audit process.
+    /// </summary>
+    /// <param name="id">template id</param>
+    /// <param name="dto"></param>
+    /// <returns></returns>
+    [HttpPost("{id}/submitForApproval")]
+    [AuditWorkflow("Template", requiredApprovalRole: "TemplateApprover")]
+    public async Task<IActionResult> SubmitForApproval(int id)
+    {
+        var reviewerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "Unknown";
+
+        // 1. Update Domain Entity State
+        await _templateService.SubmitAsync(id, TemplateStatus.SubmittedForApproval);
+
+        return Ok(new { Message = $"Template {id} submitted for approval successfully." });
+    }
+
+    /// <summary>
+    /// Submits a template for review. This action changes the template's status to "SubmittedForReview" and triggers the workflow audit process.
+    /// </summary>
+    /// <param name="id">template id</param>
+    /// <param name="dto"></param>
+    /// <returns></returns>
+    [HttpPost("{id}/submitForReview")]
+    [AuditWorkflow("Template", requiredApprovalRole: "TemplateReviewer")]
+    public async Task<IActionResult> SubmitForReview(int id)
+    {
+        var reviewerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "Unknown";
+
+        // 1. Update Domain Entity State
+        await _templateService.SubmitAsync(id, TemplateStatus.SubmittedForReview);
+
+        return Ok(new { Message = $"Template {id} submitted for review successfully." });
+    }
+
+    /// <summary>
+    /// Approves a submitted template. This action changes the template's status to "Approved" and triggers the workflow audit process.
+    /// </summary>
+    /// <param name="id">template id</param>
+    /// <param name="dto"></param>
+    /// <returns></returns>
+    [HttpPost("{id}/approve")]
+    [AuditWorkflow("Template", requiredApprovalRole: "TemplateApprover")]
+    public async Task<IActionResult> Approve(int id, string comments)
+    {
+        var reviewerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "Unknown";
+
+        // 1. Update Domain Entity State
+        await _templateService.ApproveAsync(id, comments);
+
+        return Ok(new { Message = $"Template {id} approved successfully." });
+    }
+    /// <summary>
+    /// Approves a submitted template. This action changes the template's status to "Approved" and triggers the workflow audit process.
+    /// </summary>
+    /// <param name="id">template id</param>
+    /// <param name="dto"></param>
+    /// <returns></returns>
+    [HttpPost("{id}/review")]
+    [AuditWorkflow("Template", requiredApprovalRole: "TemplateReviewer")]
+    public async Task<IActionResult> Review(int id, string comments)
+    {
+        var reviewerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "Unknown";
+
+        // 1. Update Domain Entity State
+        await _templateService.ApproveAsync(id, comments);
+
+        return Ok(new { Message = $"Template {id} reviewed successfully." });
+    }
+
+    /// <summary>
+    /// Rejects a submitted template. This action changes the template's status to "Rejected" and triggers the workflow audit process.
+    /// </summary>
+    /// <param name="id">template id</param>
+    /// <param name="dto"></param>
+    /// <returns></returns>
+    [HttpPost("{id}/reject")]
+    [AuditWorkflow("Template", requiredApprovalRole: "TemplateApprover")]
+    public async Task<IActionResult> Reject(int id, string comments)
+    {
+        var reviewerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "Unknown";
+
+        // 1. Update Domain Entity State
+        await _templateService.RejectAsync(id, comments);
+
+        return Ok(new { Message = $"Template {id} rejected successfully." });
     }
 }

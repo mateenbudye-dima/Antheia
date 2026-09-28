@@ -1,14 +1,14 @@
 ﻿
-namespace Dima.WorkflowAuditing.Entities;
+namespace Dima.WorkFlowAuditMiddleware.Entities;
 
 public class AuditLog
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public string ProjectId { get; set; } = string.Empty;
     public string EntityType { get; set; } = string.Empty;
-    public string EntityId { get; set; } = string.Empty;
+    public long EntityId { get; set; }
     public string Action { get; set; } = string.Empty;
-    public string UserId { get; set; } = string.Empty;
+    public Guid UserId { get; set; } = Guid.Empty;
     public string? UserRoles { get; set; }
     public string Path { get; set; } = string.Empty;
     public string HttpMethod { get; set; } = string.Empty;

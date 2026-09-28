@@ -1,12 +1,12 @@
 ﻿
-using Dima.WorkflowAuditing.Attributes;
-using Dima.WorkflowAuditing.Data;
-using Dima.WorkflowAuditing.Entities;
+using Dima.WorkFlowAuditMiddleware.Attributes;
+using Dima.WorkFlowAuditMiddleware.Data;
+using Dima.WorkFlowAuditMiddleware.Entities;
 using Microsoft.AspNetCore.Http;
 using System.Security.Claims;
 using System.Text.Json;
 
-namespace Dima.WorkflowAuditing.Middleware;
+namespace Dima.WorkFlowAuditMiddleware.Middleware;
 
 public class WorkflowAuditMiddleware
 {
@@ -86,9 +86,9 @@ public class WorkflowAuditMiddleware
             {
                 ProjectId = projectId,
                 EntityType = auditAttribute.EntityType,
-                EntityId = entityId,
+                EntityId = long.Parse(entityId),
                 Action = isApprovalAction ? "APPROVE" : context.Request.Method,
-                UserId = userId,
+                UserId = Guid.Parse(userId),
                 UserRoles = string.IsNullOrEmpty(userRoles) ? "None" : userRoles,
                 Path = path,
                 HttpMethod = context.Request.Method,

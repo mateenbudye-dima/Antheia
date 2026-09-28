@@ -1,4 +1,4 @@
-﻿namespace Dima.WorkflowAuditing.Attributes;
+﻿namespace Dima.WorkFlowAuditMiddleware.Attributes;
 
 [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class)]
 public class AuditWorkflowAttribute : Attribute

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Antheia.Domain.Enums;
+using System;
 using System.Collections.Generic;
 
 namespace Antheia.Domain.Entities;
@@ -29,7 +30,7 @@ public partial class TemplateRecord
 
     public DateTime UpdatedDate { get; set; }
 
-    public byte? Status { get; set; }
+    public TemplateStatus? Status { get; set; }
 
     public bool? IsMarkedComplete { get; set; }
 

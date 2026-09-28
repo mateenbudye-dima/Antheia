@@ -1,7 +1,7 @@
-﻿using Dima.WorkflowAuditing.Entities;
+﻿using Dima.WorkFlowAuditMiddleware.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace Dima.WorkflowAuditing.Data;
+namespace Dima.WorkFlowAuditMiddleware.Data;
 
 public class AuditDbContext : DbContext
 {

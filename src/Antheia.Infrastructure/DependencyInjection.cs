@@ -8,6 +8,7 @@ using Antheia.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Dima.WorkFlowAuditMiddleware.Extensions;
 
 public static class DependencyInjection
 {
@@ -15,13 +16,20 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        var legacyConnectionString = configuration.GetConnectionString("DefaultConnection")
+            ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+        var connectionString = configuration.GetConnectionString("AntheiaConnection")
+            ?? throw new InvalidOperationException("Connection string 'AntheiaConnection' not found.");
+
         // 1. Database Context
         services.AddDbContext<LegacyMembershipDbContext>(options =>
-            options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
+            options.UseSqlServer(legacyConnectionString));
 
         // Add Antheia Application DbContext
         services.AddDbContext<AntheiaDbContext>(options =>
-            options.UseSqlServer(configuration.GetConnectionString("AntheiaConnection")));
+            options.UseSqlServer(connectionString));
+
+        services.AddWorkflowAuditing(connectionString);
 
         services.AddHttpContextAccessor();
 

@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Antheia.Application.Exceptions;
 using Microsoft.Extensions.Logging;
 using Antheia.Domain.Enums;
+using Dima.WorkFlowAuditMiddleware.Services;
 
 namespace Antheia.Infrastructure.Services;
 
@@ -14,12 +15,17 @@ public class TemplateService : ITemplateService
     private readonly AntheiaDbContext _context;
     private readonly ICurrentUserService _currentUser;
     private readonly ILogger<TemplateService> _logger;
+    private readonly IWorkflowService _workflowService;
 
-    public TemplateService(AntheiaDbContext context, ICurrentUserService currentUser, ILogger<TemplateService> logger)
+    public TemplateService(AntheiaDbContext context, 
+                            IWorkflowService workflowService,
+                            ICurrentUserService currentUser, 
+                            ILogger<TemplateService> logger)
     {
         _context = context;
         _currentUser = currentUser;
         _logger = logger;
+        _workflowService = workflowService;
     }
 
     // 1. Creates an initial draft template record upon page initialization
@@ -787,5 +793,27 @@ public class TemplateService : ITemplateService
             _logger.LogError(ex, "DeleteEvaluationAsync failed for EvaluationId:{EvaluationId}", evaluationId);
             throw;
         }
+    }
+
+    public async Task SubmitAsync(int templateId, TemplateStatus submittedFor)
+    {
+        var template = await _context.TemplateRecords.FirstOrDefaultAsync(t => t.TemplateId == templateId && t.IsActive)
+                        ?? throw new NotFoundException($"Template with ID {templateId} not found.");
+        template.Status = submittedFor ==  TemplateStatus.SubmittedForApproval ? TemplateStatus.SubmittedForApproval : TemplateStatus.SubmittedForReview;
+        await _workflowService.SubmitForApprovalAsync("Template", templateId, _currentUser.UserId);
+    }
+    public async Task ApproveAsync(int templateId, string? comments)
+    {
+        var template = await _context.TemplateRecords.FirstOrDefaultAsync(t => t.TemplateId == templateId && t.IsActive)
+                       ?? throw new NotFoundException($"Template with ID {templateId} not found.");
+        template.Status = template.Status == TemplateStatus.SubmittedForApproval ? TemplateStatus.Approved : TemplateStatus.SubmittedForReview;
+        await _workflowService.ApproveAsync("Template", templateId, _currentUser.UserId, comments);
+    }
+    public async Task RejectAsync(int templateId, string? comments)
+    {
+        var template = await _context.TemplateRecords.FirstOrDefaultAsync(t => t.TemplateId == templateId && t.IsActive)
+                       ?? throw new NotFoundException($"Template with ID {templateId} not found.");
+        template.Status = TemplateStatus.Rejected;
+        await _workflowService.RejectAsync("Template", templateId, _currentUser.UserId, comments);
     }
 }
