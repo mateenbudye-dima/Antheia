@@ -1,15 +1,13 @@
-﻿using Antheia.Application.Interfaces;
-using Antheia.Infrastructure.Data;
-using Antheia.Infrastructure.Repositories;
-using Antheia.Infrastructure.Security;
-using Antheia.Infrastructure.Services;
+﻿namespace Antheia.Api.Extensions;
+
+using Asp.Versioning.ApiExplorer;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+using Swashbuckle.AspNetCore.SwaggerGen;
 using System.Text;
-
-namespace Antheia.Api.Extensions;
 
 public static class ServiceCollectionExtensions
 {
@@ -17,15 +15,11 @@ public static class ServiceCollectionExtensions
     {
         var jwtSettings = configuration.GetSection("JwtSettings");
         var secretKey = jwtSettings["SecretKey"]
-                        ?? throw new InvalidOperationException(
-                            "JWT SecretKey is not configured.");
+                        ?? throw new InvalidOperationException("JWT SecretKey is not configured.");
         var issuer = jwtSettings["Issuer"]
-                        ?? throw new InvalidOperationException(
-                            "JWT Issuer is not configured.");
-
+                        ?? throw new InvalidOperationException("JWT Issuer is not configured.");
         var audience = jwtSettings["Audience"]
-                        ?? throw new InvalidOperationException(
-                            "JWT Audience is not configured.");
+                        ?? throw new InvalidOperationException("JWT Audience is not configured.");
 
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>
@@ -64,19 +58,16 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
-    public static IServiceCollection AddSwaggerWithJwt(
-    this IServiceCollection services)
+    public static IServiceCollection AddSwaggerWithJwt(this IServiceCollection services)
     {
         services.AddEndpointsApiExplorer();
 
+        // 1. Register option transformer to generate dynamic Swagger docs per API version
+        services.AddTransient<IConfigureOptions<SwaggerGenOptions>, ConfigureSwaggerOptions>();
+
+        // 2. Configure SwaggerGen with JWT Bearer auth
         services.AddSwaggerGen(options =>
         {
-            options.SwaggerDoc("v1", new OpenApiInfo
-            {
-                Title = "Antheia API",
-                Version = "v1"
-            });
-
             options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
             {
                 Name = "Authorization",
@@ -95,5 +86,27 @@ public static class ServiceCollectionExtensions
         });
 
         return services;
+    }
+}
+
+/// <summary>
+/// Dynamically configures Swagger documents for each discovered API version.
+/// </summary>
+public class ConfigureSwaggerOptions(IApiVersionDescriptionProvider provider)
+    : IConfigureOptions<SwaggerGenOptions>
+{
+    public void Configure(SwaggerGenOptions options)
+    {
+        foreach (var description in provider.ApiVersionDescriptions)
+        {
+            options.SwaggerDoc(description.GroupName, new OpenApiInfo
+            {
+                Title = "Antheia API",
+                Version = description.ApiVersion.ToString(),
+                Description = description.IsDeprecated
+                    ? "This API version has been deprecated."
+                    : "Antheia API with Workflow Auditing Integration"
+            });
+        }
     }
 }

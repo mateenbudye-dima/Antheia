@@ -1,6 +1,7 @@
 ﻿using Antheia.Application.DTOs;
 using Antheia.Application.Interfaces;
 using Antheia.Domain.Enums;
+using Asp.Versioning;
 using Dima.WorkFlowAuditMiddleware.Attributes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -9,7 +10,8 @@ using System.Security.Claims;
 
 [Authorize]
 [ApiController]
-[Route("api/[controller]")]
+[ApiVersion("1.0")] // Defines this controller as v1.0
+[Route("api/v{version:apiVersion}/[controller]")] // Generates /api/v1/templates
 public class TemplatesController : ControllerBase
 {
     private readonly ITemplateService _templateService;

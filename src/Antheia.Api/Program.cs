@@ -1,10 +1,11 @@
 using Antheia.Api.Extensions;
 using Antheia.Application;
 using Antheia.Infrastructure;
+using Asp.Versioning;
+using Asp.Versioning.ApiExplorer;
 using Dima.WorkFlowAuditMiddleware.Data;
 using Dima.WorkFlowAuditMiddleware.Extensions;
 using Serilog;
-using Serilog.Events;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,6 +16,7 @@ Log.Logger = new LoggerConfiguration()
     .CreateLogger();
 
 builder.Host.UseSerilog();
+
 const string reactAppCorsPolicy = "AllowReactApp";
 
 builder.Services.AddApplicationServices()
@@ -23,7 +25,21 @@ builder.Services.AddApplicationServices()
                 .AddCorsPolicy(builder.Configuration, reactAppCorsPolicy);
 
 builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
+
+// Configure API Versioning
+builder.Services.AddApiVersioning(options =>
+{
+    options.DefaultApiVersion = new ApiVersion(1, 0); // Default to v1.0
+    options.AssumeDefaultVersionWhenUnspecified = true; // Use default if client doesn't specify
+    options.ReportApiVersions = true; // Returns "api-supported-versions" header in responses
+    options.ApiVersionReader = new UrlSegmentApiVersionReader(); // Reads version from URL /v1/
+}).AddApiExplorer(options =>
+{
+    options.GroupNameFormat = "'v'VVV"; // Formats version groups as 'v1', 'v2', etc.
+    options.SubstituteApiVersionInUrl = true; // Replaces {version:apiVersion} in route templates
+});
+
+// Register Swagger Generator with JWT & Dynamic Version Options
 builder.Services.AddSwaggerWithJwt();
 
 var app = builder.Build();
@@ -35,18 +51,26 @@ app.UseHttpsRedirection();
 app.UseCors(reactAppCorsPolicy);
 app.UseAuthentication();
 app.UseAuthorization();
-
 app.UseWorkflowAuditing();
-
 app.MapControllers();
 
 // Configure HTTP Pipeline
 if (app.Environment.IsDevelopment())
 {
+    var apiVersionDescriptionProvider = app.Services.GetRequiredService<IApiVersionDescriptionProvider>();
+
     app.UseSwagger();
     app.UseSwaggerUI(c =>
     {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "API v1");
+        // Build an endpoint in the Swagger UI drop-down for each discovered API version
+        foreach (var description in apiVersionDescriptionProvider.ApiVersionDescriptions)
+        {
+            c.SwaggerEndpoint(
+                $"/swagger/{description.GroupName}/swagger.json",
+                $"Antheia API {description.GroupName.ToUpperInvariant()}"
+            );
+        }
+
         c.RoutePrefix = "swagger";
     });
 }
@@ -61,7 +85,7 @@ try
         await AuditDbInitializer.InitializeAsync(dbContext);
     }
 
-    app.Run();
+    await app.RunAsync();
 }
 catch (Exception ex)
 {
