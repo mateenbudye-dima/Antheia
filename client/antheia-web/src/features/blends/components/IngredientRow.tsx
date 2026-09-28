@@ -11,9 +11,9 @@ import {
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import {
+  IngredientType,
   INGREDIENT_TYPE_OPTIONS,
   type Ingredient,
-  IngredientType,
 } from '../types/blend.types';
 import { useAutoSave } from '../../../shared/hooks/useAutoSave';
 import { useBlendMutations } from '../hooks/useBlendMutations';
@@ -48,6 +48,13 @@ export const IngredientRow: React.FC<IngredientRowProps> = ({
       });
     },
   });
+
+  // Block non-numeric key presses ('e', 'E', '+', '-') in number fields
+  const handleNumberKeyDown = (e: React.KeyboardEvent) => {
+    if (['e', 'E', '+', '-'].includes(e.key)) {
+      e.preventDefault();
+    }
+  };
 
   return (
     <TableRow hover>
@@ -85,9 +92,16 @@ export const IngredientRow: React.FC<IngredientRowProps> = ({
           type="number"
           fullWidth
           value={item.ratio ?? ''}
-          onChange={(e) =>
-            onChange(item.sectionIngredientId, 'ratio', parseFloat(e.target.value) || 0)
-          }
+          onKeyDown={handleNumberKeyDown}
+          slotProps={{ htmlInput: { min: 0, step: 'any' } }}
+          onChange={(e) => {
+            const val = e.target.value;
+            onChange(
+              item.sectionIngredientId,
+              'ratio',
+              val === '' ? 0 : parseFloat(val) || 0
+            );
+          }}
         />
       </TableCell>
       <TableCell>
@@ -96,13 +110,16 @@ export const IngredientRow: React.FC<IngredientRowProps> = ({
           type="number"
           fullWidth
           value={item.quantity ?? ''}
-          onChange={(e) =>
+          onKeyDown={handleNumberKeyDown}
+          slotProps={{ htmlInput: { min: 0, step: 'any' } }}
+          onChange={(e) => {
+            const val = e.target.value;
             onChange(
               item.sectionIngredientId,
               'quantity',
-              parseFloat(e.target.value) || 0
-            )
-          }
+              val === '' ? 0 : parseFloat(val) || 0
+            );
+          }}
         />
       </TableCell>
       <TableCell align="center">

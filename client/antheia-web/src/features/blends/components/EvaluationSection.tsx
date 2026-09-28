@@ -1,19 +1,16 @@
 import React, { useState } from 'react';
-import {
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Button,
-  Box,
-} from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
 import type { EvaluationItem } from '../types/blend.types';
 import { EvaluationRow } from './EvaluationRow';
 import { useBlendMutations } from '../hooks/useBlendMutations';
+import { BlendSectionTable, type ColumnConfig } from './shared/BlendSectionTable';
+
+const COLUMNS: ColumnConfig[] = [
+  { label: 'Parameter', width: '35%' },
+  { label: 'Result', width: '25%' },
+  { label: 'Specification', width: '25%' },
+  { label: 'Status', width: '10%' },
+  { label: 'Actions', width: '5%', align: 'center' },
+];
 
 interface Props {
   blendId: number;
@@ -21,9 +18,12 @@ interface Props {
   initialEvaluations: EvaluationItem[];
 }
 
-export const EvaluationSection: React.FC<Props> = ({ blendId, sectionId, initialEvaluations }) => {
+export const EvaluationSection: React.FC<Props> = ({
+  blendId,
+  sectionId,
+  initialEvaluations,
+}) => {
   const [evaluations, setEvaluations] = useState<EvaluationItem[]>(initialEvaluations);
-
   const { addEvaluationAsync, deleteEvaluationAsync } = useBlendMutations(blendId);
 
   const addParam = async () => {
@@ -57,41 +57,20 @@ export const EvaluationSection: React.FC<Props> = ({ blendId, sectionId, initial
   };
 
   return (
-    <Paper sx={{ p: 2, mt: 3 }} variant="outlined">
-      <TableContainer>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell style={{ width: '40%' }}>Parameter</TableCell>
-              <TableCell style={{ width: '30%' }}>Result</TableCell>
-              <TableCell style={{ width: '40%' }}>Specification</TableCell>
-              <TableCell style={{ width: '15%' }}>Status</TableCell>
-              <TableCell align="center" style={{ width: '5%' }}>Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {evaluations.map((item) => (
-              <EvaluationRow
-                blendId={blendId}
-                key={item.evaluationId}
-                item={item}
-                onChange={updateField}
-                onDelete={deleteRow}
-              />
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-      <Box sx={{ mt: 2 }}>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={addParam}
-          size="small"
-        >
-          Add Evaluation Parameter
-        </Button>
-      </Box>
-    </Paper>
+    <BlendSectionTable
+      columns={COLUMNS}
+      addButtonLabel="Add Evaluation Parameter"
+      onAddRow={addParam}
+    >
+      {evaluations.map((item) => (
+        <EvaluationRow
+          key={item.evaluationId}
+          blendId={blendId}
+          item={item}
+          onChange={updateField}
+          onDelete={deleteRow}
+        />
+      ))}
+    </BlendSectionTable>
   );
 };

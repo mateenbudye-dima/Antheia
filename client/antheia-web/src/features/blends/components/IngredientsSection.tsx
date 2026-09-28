@@ -1,19 +1,17 @@
-import React, { useState } from 'react';
-import {
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Button,
-  Box,
-} from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
+import React, { useState, useMemo } from 'react';
+import { TableCell, Typography } from '@mui/material';
 import { IngredientType, type Ingredient } from '../types/blend.types';
 import { IngredientRow } from './IngredientRow';
 import { useBlendMutations } from '../hooks/useBlendMutations';
+import { BlendSectionTable, type ColumnConfig } from './shared/BlendSectionTable';
+
+const COLUMNS: ColumnConfig[] = [
+  { label: 'Name', width: '30%' },
+  { label: 'Type', width: '25%' },
+  { label: 'Ratio (%)', width: '15%' },
+  { label: 'Qty (g)', width: '15%' },
+  { label: 'Actions', width: '15%', align: 'center' },
+];
 
 interface Props {
   blendId: number;
@@ -21,10 +19,23 @@ interface Props {
   initialIngredients: Ingredient[];
 }
 
-export const IngredientsSection: React.FC<Props> = ({ blendId, sectionId, initialIngredients }) => {
+export const IngredientsSection: React.FC<Props> = ({
+  blendId,
+  sectionId,
+  initialIngredients,
+}) => {
   const [ingredients, setIngredients] = useState<Ingredient[]>(initialIngredients);
-
   const { addIngredientAsync, deleteIngredientAsync } = useBlendMutations(blendId);
+
+  const totals = useMemo(() => {
+    return ingredients.reduce(
+      (acc, item) => ({
+        totalRatio: acc.totalRatio + (Number(item.ratio) || 0),
+        totalQuantity: acc.totalQuantity + (Number(item.quantity) || 0),
+      }),
+      { totalRatio: 0, totalQuantity: 0 }
+    );
+  }, [ingredients]);
 
   const addRow = async () => {
     try {
@@ -56,42 +67,43 @@ export const IngredientsSection: React.FC<Props> = ({ blendId, sectionId, initia
     }
   };
 
+  const formatTotal = (val: number) => Number(val.toFixed(2));
+
   return (
-    <Paper sx={{ p: 2, mt: 3 }} variant="outlined">      
-      <TableContainer>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell style={{ width: '30%' }}>Name</TableCell>
-              <TableCell style={{ width: '25%' }}>Type</TableCell>
-              <TableCell style={{ width: '15%' }}>Ratio (%)</TableCell>
-              <TableCell style={{ width: '15%' }}>Qty (g)</TableCell>
-              <TableCell align="center" style={{ width: '5%' }}>Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {ingredients.map((item) => (
-              <IngredientRow
-                key={item.sectionIngredientId}
-                blendId={blendId}
-                item={item}
-                onChange={updateLocalField}
-                onDelete={deleteRow}
-              />
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-      <Box sx={{ mt: 2 }}>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={addRow}
-          size="small"
-        >
-          Add Ingredient Row
-        </Button>
-      </Box>
-    </Paper>
+    <BlendSectionTable
+      columns={COLUMNS}
+      addButtonLabel="Add Ingredient Row"
+      onAddRow={addRow}
+      footerNode={
+        <>
+          <TableCell colSpan={2}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }} color="primary.dark">
+              Total
+            </Typography>
+          </TableCell>
+          <TableCell>
+            <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }} color="primary.dark">
+              {formatTotal(totals.totalRatio)}%
+            </Typography>
+          </TableCell>
+          <TableCell>
+            <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }} color="primary.dark">
+              {formatTotal(totals.totalQuantity)} g
+            </Typography>
+          </TableCell>
+          <TableCell />
+        </>
+      }
+    >
+      {ingredients.map((item) => (
+        <IngredientRow
+          key={item.sectionIngredientId}
+          blendId={blendId}
+          item={item}
+          onChange={updateLocalField}
+          onDelete={deleteRow}
+        />
+      ))}
+    </BlendSectionTable>
   );
 };
