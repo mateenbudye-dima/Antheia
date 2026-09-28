@@ -43,7 +43,10 @@ export const Layout: React.FC = () => {
 
   const navItems = [
     { text: 'Dashboard', path: '/dashboard', icon: <DashboardIcon /> },
-    { text: 'Blends', path: '/blends', icon: <DescriptionIcon /> }
+    { text: 'Blends', path: '/blends', icon: <DescriptionIcon /> },
+    { text: 'Formulation Trials', path: '/formulation-trials', icon: <DescriptionIcon /> },
+    { text: 'Formulation Tests', path: '/formulation-tests', icon: <DescriptionIcon /> },
+    { text: 'Stability', path: '/stability', icon: <DescriptionIcon /> }
   ];
 
   const getCurrentTitle = () => {
