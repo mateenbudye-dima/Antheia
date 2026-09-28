@@ -8,7 +8,7 @@ namespace Antheia.Domain.Enums
     {
         Unknown = 0,
         Blend = 1,
-        Template = 2,
-        Experiment = 3
+        //Template = 2,
+        //Experiment = 3
     }
 }
