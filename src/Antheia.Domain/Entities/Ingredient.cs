@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Antheia.Domain.Enums;
+using System;
 using System.Collections.Generic;
 
 namespace Antheia.Domain.Entities;
@@ -11,7 +12,7 @@ public partial class Ingredient
 
     public string Name { get; set; } = null!;
 
-    public string? Type { get; set; }
+    public IngredientType Type { get; set; }
 
     public decimal? Ratio { get; set; }
 

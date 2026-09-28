@@ -1,7 +1,20 @@
 import React from 'react';
-import { TableRow, TableCell, TextField, IconButton, Tooltip } from '@mui/material';
+import {
+  TableRow,
+  TableCell,
+  TextField,
+  IconButton,
+  Tooltip,
+  Select,
+  MenuItem,
+  FormControl,
+} from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
-import type { Ingredient } from '../types/blend.types';
+import {
+  INGREDIENT_TYPE_OPTIONS,
+  type Ingredient,
+  IngredientType,
+} from '../types/blend.types';
 import { useAutoSave } from '../../../shared/hooks/useAutoSave';
 import { useBlendMutations } from '../hooks/useBlendMutations';
 
@@ -12,21 +25,26 @@ interface IngredientRowProps {
   onDelete: (id: number) => void;
 }
 
-export const IngredientRow: React.FC<IngredientRowProps> = ({blendId, item, onChange, onDelete }) => {
+export const IngredientRow: React.FC<IngredientRowProps> = ({
+  blendId,
+  item,
+  onChange,
+  onDelete,
+}) => {
   const { updateIngredientAsync } = useBlendMutations(blendId);
-  
+
   useAutoSave({
     value: item,
     delay: 800,
     onSave: async (debouncedItem) => {
       await updateIngredientAsync({
-        id:debouncedItem.sectionIngredientId, 
-        payload:{
+        id: debouncedItem.sectionIngredientId,
+        payload: {
           name: debouncedItem.name,
           type: debouncedItem.type,
           ratio: debouncedItem.ratio,
           quantity: debouncedItem.quantity,
-        }
+        },
       });
     },
   });
@@ -42,12 +60,24 @@ export const IngredientRow: React.FC<IngredientRowProps> = ({blendId, item, onCh
         />
       </TableCell>
       <TableCell>
-        <TextField
-          size="small"
-          fullWidth
-          value={item.type ?? ''}
-          onChange={(e) => onChange(item.sectionIngredientId, 'type', e.target.value)}
-        />
+        <FormControl fullWidth size="small">
+          <Select
+            value={item.type ?? IngredientType.Unknown}
+            onChange={(e) =>
+              onChange(
+                item.sectionIngredientId,
+                'type',
+                Number(e.target.value) as IngredientType
+              )
+            }
+          >
+            {INGREDIENT_TYPE_OPTIONS.map((option) => (
+              <MenuItem key={option.value} value={option.value}>
+                {option.label}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
       </TableCell>
       <TableCell>
         <TextField
@@ -55,7 +85,9 @@ export const IngredientRow: React.FC<IngredientRowProps> = ({blendId, item, onCh
           type="number"
           fullWidth
           value={item.ratio ?? ''}
-          onChange={(e) => onChange(item.sectionIngredientId, 'ratio', parseFloat(e.target.value) || 0)}
+          onChange={(e) =>
+            onChange(item.sectionIngredientId, 'ratio', parseFloat(e.target.value) || 0)
+          }
         />
       </TableCell>
       <TableCell>
@@ -64,7 +96,13 @@ export const IngredientRow: React.FC<IngredientRowProps> = ({blendId, item, onCh
           type="number"
           fullWidth
           value={item.quantity ?? ''}
-          onChange={(e) => onChange(item.sectionIngredientId, 'quantity', parseFloat(e.target.value) || 0)}
+          onChange={(e) =>
+            onChange(
+              item.sectionIngredientId,
+              'quantity',
+              parseFloat(e.target.value) || 0
+            )
+          }
         />
       </TableCell>
       <TableCell align="center">

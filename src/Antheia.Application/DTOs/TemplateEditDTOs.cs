@@ -27,7 +27,7 @@ namespace Antheia.Application.DTOs
     public record IngredientEditDto(
         int SectionIngredientId,
         string Name,
-        string? Type,
+        IngredientType Type,
         decimal? Ratio,
         decimal? Quantity
     );

@@ -11,7 +11,7 @@ import {
   Box,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import type { Ingredient } from '../types/blend.types';
+import { IngredientType, type Ingredient } from '../types/blend.types';
 import { IngredientRow } from './IngredientRow';
 import { useBlendMutations } from '../hooks/useBlendMutations';
 
@@ -31,7 +31,7 @@ export const IngredientsSection: React.FC<Props> = ({ blendId, sectionId, initia
       const newIngredient = await addIngredientAsync({
         sectionId,
         name: 'New Ingredient',
-        type: 'Active',
+        type: IngredientType.Unknown,
         ratio: 0,
         quantity: 0,
       });

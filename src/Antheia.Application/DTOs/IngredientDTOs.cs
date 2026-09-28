@@ -1,20 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using Antheia.Domain.Enums;
 
 namespace Antheia.Application.DTOs;
 
 public record CreateIngredientDto(
     int SectionId,
     string Name,
-    string? Type,
+    IngredientType Type,
     decimal? Ratio,
     decimal? Quantity
 );
 
 public record UpdateIngredientDto(
     string Name,
-    string? Type,
+    IngredientType Type,
     decimal? Ratio,
     decimal? Quantity
 );
@@ -23,7 +21,7 @@ public record IngredientResponseDto(
     int SectionIngredientId,
     int SectionId,
     string Name,
-    string? Type,
+    IngredientType Type,
     decimal? Ratio,
     decimal? Quantity
 );

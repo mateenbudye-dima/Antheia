@@ -15,7 +15,7 @@ public record AddSectionDto(
 
 public record IngredientDto(
     string Name,
-    string? Type,
+    IngredientType Type,
     decimal? Ratio,
     decimal? Quantity
 );

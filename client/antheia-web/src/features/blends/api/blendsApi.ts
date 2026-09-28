@@ -1,5 +1,5 @@
 import apiClient from "../../../shared/api/apiClient";
-import type { EvaluationItem, FullBlendResponse, Ingredient, PreparationMethod, SectionType } from "../types/blend.types";
+import type { EvaluationItem, FullBlendResponse, Ingredient, IngredientType, PreparationMethod, SectionType } from "../types/blend.types";
 
 export interface UpdateBlendHeaderDto {
   title: string;
@@ -14,14 +14,14 @@ export interface CreateSectionPayload {
 export interface CreateIngredientPayload {
   sectionId: number;
   name: string;
-  type?: string;
+  type: IngredientType;
   ratio?: number;
   quantity?: number;
 }
 
 export interface UpdateIngredientPayload {
   name: string;
-  type?: string;
+  type: IngredientType;
   ratio?: number;
   quantity?: number;
 }

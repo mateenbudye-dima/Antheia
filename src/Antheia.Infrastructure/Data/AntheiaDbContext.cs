@@ -44,7 +44,6 @@ public partial class AntheiaDbContext : DbContext
             entity.Property(e => e.Name).HasMaxLength(200).IsUnicode(false);
             entity.Property(e => e.Quantity).HasColumnType("decimal(18, 5)");
             entity.Property(e => e.Ratio).HasColumnType("decimal(18, 5)");
-            entity.Property(e => e.Type).HasMaxLength(100).IsUnicode(false);
             entity.Property(e => e.UpdatedDate).HasColumnType("smalldatetime");
 
             entity.HasOne(d => d.Section)
