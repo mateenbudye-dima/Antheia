@@ -5,8 +5,8 @@ using System.Text;
 
 namespace Antheia.Application.DTOs
 {
-    public record GetTemplateForEditDto(
-        int TemplateId,
+    public record GetBlendForEditDto(
+        int BlendId,
         string Title,
         string? Objective,
         string? Description,

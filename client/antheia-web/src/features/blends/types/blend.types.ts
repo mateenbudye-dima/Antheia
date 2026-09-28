@@ -39,8 +39,8 @@ export interface Section {
   evaluations: EvaluationItem[];
 }
 
-export interface FullTemplateResponse {
-  templateId: number;
+export interface FullBlendResponse {
+  blendId: number;
   title: string;
   objective: string;
   description: string;

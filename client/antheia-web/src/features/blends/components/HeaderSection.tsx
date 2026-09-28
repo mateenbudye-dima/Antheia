@@ -1,17 +1,17 @@
 import React, { useState } from 'react';
 import { Paper, Grid, TextField, Typography, Box } from '@mui/material';
 import { useAutoSave } from '../../../shared/hooks/useAutoSave';
-import { useTemplateMutations } from '../hooks/useTemplateMutations';
+import { useBlendMutations } from '../hooks/useBlendMutations';
 
 interface Props {
-  templateId: number;
+  blendId: number;
   initialTitle: string;
   initialObjective: string;
   initialDescription: string;
 }
 
 export const HeaderSection: React.FC<Props> = ({
-  templateId,
+  blendId,
   initialTitle,
   initialObjective,
   initialDescription,
@@ -22,7 +22,7 @@ export const HeaderSection: React.FC<Props> = ({
     description: initialDescription,
   });
 
-  const {updateHeaderAsync} = useTemplateMutations(templateId);
+  const {updateHeaderAsync} = useBlendMutations(blendId);
 
   useAutoSave({
     value: headerData,
@@ -40,14 +40,14 @@ export const HeaderSection: React.FC<Props> = ({
     <Paper sx={{ p: 3, mb: 3 }} variant="outlined">
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Typography variant="h5" component="h1" sx={{ fontWeight: 'bold' }}>
-          Template Header Details
+          Blend Header Details
         </Typography>
       </Box>
 
       <Grid container spacing={2}>
         <Grid size={{ xs: 12 }}>
           <TextField
-            label="Template Title"
+            label="Blend Title"
             size="small"
             fullWidth
             value={headerData.title ?? ''}

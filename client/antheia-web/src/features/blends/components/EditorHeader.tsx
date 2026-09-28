@@ -11,11 +11,11 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ViewListIcon from '@mui/icons-material/ViewList';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import { StatusBadge } from '../../../shared/components/StatusBadge';
-import { useTemplateMutations } from '../hooks/useTemplateMutations';
+import { useBlendMutations } from '../hooks/useBlendMutations';
 
 export interface EditorHeaderProps {
   title?: string;
-  templateId: number;
+  blendId: number;
   viewMode: 'split' | 'all';
   isMobile: boolean;
   isSidebarCollapsed: boolean;
@@ -29,13 +29,13 @@ export interface EditorHeaderProps {
 
 export const EditorHeader: React.FC<EditorHeaderProps> = ({
   title,
-  templateId,
+  blendId,
   viewMode,
   onBack,
   onViewModeChange,
 }) => {
   // Read aggregated saveStatus across ALL header/ingredient/prep/eval mutations
-  const { saveStatus } = useTemplateMutations(templateId);
+  const { saveStatus } = useBlendMutations(blendId);
 
   return (
     <Box
@@ -50,14 +50,14 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
       {/* Left: Section Tree Menu Toggle + Back Button */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         <Button startIcon={<ArrowBackIcon />} onClick={onBack} size="small">
-          Back to Templates
+          Back to Blends
         </Button>
       </Box>
 
       {/* Center: Title + Global Status Badge */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
         <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-          {title ? `Editing: ${title}` : `Editing Template #${templateId}`}
+          {title ? `Editing: ${title}` : `Editing Blend #${blendId}`}
         </Typography>
         <StatusBadge status={saveStatus} />
       </Box>
@@ -107,3 +107,4 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
     </Box>
   );
 };
+

@@ -4,7 +4,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { LoginForm } from '../features/auth/Components/Login';
 import { Dashboard } from '../pages/Dashboard';
 import { Layout } from '../shared/layouts/Layout';
-import { TemplateEditPage, TemplateListPage } from '../features/templates';
+import { BlendEditPage, BlendListPage } from '../features/blends';
 import { ProtectedRoute } from '../shared/auth/ProtectedRoute';
 
 export const AppRoutes: React.FC = () => {
@@ -20,12 +20,11 @@ export const AppRoutes: React.FC = () => {
       <Route element={<ProtectedRoute />}>
         <Route element={<Layout />}>
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/profile" element={<div>User Profile Page</div>} />
-          {/* List of Templates */}
-          <Route path="/templates" element={<TemplateListPage />} />
+          {/* List of Blends */}
+          <Route path="/blends" element={<BlendListPage />} />
 
-          {/* Edit Template Route with Dynamic ID */}
-          <Route path="/templates/:id/edit" element={<TemplateEditPage />} />
+          {/* Edit Blend Route with Dynamic ID */}
+          <Route path="/blends/:id/edit" element={<BlendEditPage />} />
         </Route>
       </Route>
 

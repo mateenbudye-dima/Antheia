@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Antheia.Domain.Enums
 {
-    public enum TemplateStatus:byte
+    public enum BlendStatus:byte
     {
         Draft = 0,
         SubmittedForReview = 1,

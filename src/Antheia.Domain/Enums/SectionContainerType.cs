@@ -7,7 +7,8 @@ namespace Antheia.Domain.Enums
     public enum SectionContainerType : byte
     {
         Unknown = 0,
-        Template = 1,
-        Experiment = 2
+        Blend = 1,
+        Template = 2,
+        Experiment = 3
     }
 }

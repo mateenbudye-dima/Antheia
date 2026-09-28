@@ -10,17 +10,17 @@ using Dima.WorkFlowAuditMiddleware.Services;
 
 namespace Antheia.Infrastructure.Services;
 
-public class TemplateService : ITemplateService
+public class BlendService : IBlendService
 {
     private readonly AntheiaDbContext _context;
     private readonly ICurrentUserService _currentUser;
-    private readonly ILogger<TemplateService> _logger;
+    private readonly ILogger<BlendService> _logger;
     private readonly IWorkflowService _workflowService;
 
-    public TemplateService(AntheiaDbContext context, 
+    public BlendService(AntheiaDbContext context, 
                             IWorkflowService workflowService,
                             ICurrentUserService currentUser, 
-                            ILogger<TemplateService> logger)
+                            ILogger<BlendService> logger)
     {
         _context = context;
         _currentUser = currentUser;
@@ -28,18 +28,18 @@ public class TemplateService : ITemplateService
         _workflowService = workflowService;
     }
 
-    // 1. Creates an initial draft template record upon page initialization
-    public async Task<DraftTemplateCreatedDto> CreateDraftTemplateAsync()
+    // 1. Creates an initial draft blend record upon page initialization
+    public async Task<DraftBlendCreatedDto> CreateDraftBlendAsync()
     {
-        _logger.LogInformation("CreateDraftTemplateAsync started by User:{UserId} Org:{OrgId}", _currentUser.UserId, _currentUser.OrganizationId);
+        _logger.LogInformation("CreateDraftBlendAsync started by User:{UserId} Org:{OrgId}", _currentUser.UserId, _currentUser.OrganizationId);
         using var transaction = await _context.Database.BeginTransactionAsync();
 
         try
         {
-            // 1. Create Base Template Record
-            var template = new TemplateRecord
+            // 1. Create Base Blend Record
+            var blend = new BlendRecord
             {
-                Title = "Untitled Template",
+                Title = "Untitled Blend",
                 OrganizationId = _currentUser.OrganizationId,
                 AuthorId = _currentUser.UserId,
                 CreatedBy = _currentUser.UserId,
@@ -50,15 +50,15 @@ public class TemplateService : ITemplateService
                 IsActive = true
             };
 
-            _context.TemplateRecords.Add(template);
+            _context.BlendRecords.Add(blend);
             await _context.SaveChangesAsync();
-            _logger.LogDebug("CreateDraftTemplateAsync: base template created with temporary id {TempId}", template.TemplateId);
+            _logger.LogDebug("CreateDraftBlendAsync: base blend created with temporary id {TempId}", blend.BlendId);
 
             // 2. Create Default "Ingredients" Section (SectionTypeId = 1)
             var ingredientsSection = new SectionRecord
             {
-                ContainerId = template.TemplateId,
-                ContainerTypeId = SectionContainerType.Template,
+                ContainerId = blend.BlendId,
+                ContainerTypeId = SectionContainerType.Blend,
                 SectionTypeId = SectionType.Ingredient,
                 SectionTitle = "Ingredients",
                 SectionOrder = 1,
@@ -73,8 +73,8 @@ public class TemplateService : ITemplateService
             // 3. Create Default "Preparation Method" Section (SectionTypeId = 2)
             var prepSection = new SectionRecord
             {
-                ContainerId = template.TemplateId,
-                ContainerTypeId = SectionContainerType.Template,
+                ContainerId = blend.BlendId,
+                ContainerTypeId = SectionContainerType.Blend,
                 SectionTypeId = SectionType.PreparationMethod,
                 SectionTitle = "Preparation Method",
                 SectionOrder = 2,
@@ -89,8 +89,8 @@ public class TemplateService : ITemplateService
             // 4. Create Default "Evaluation" Section (SectionTypeId = 3)
             var evalSection = new SectionRecord
             {
-                ContainerId = template.TemplateId,
-                ContainerTypeId = SectionContainerType.Template,
+                ContainerId = blend.BlendId,
+                ContainerTypeId = SectionContainerType.Blend,
                 SectionTypeId = SectionType.Evaluation,
                 SectionTitle = "Emulsifier Blend Evaluation",
                 SectionOrder = 3,
@@ -144,10 +144,10 @@ public class TemplateService : ITemplateService
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();
 
-            _logger.LogInformation("CreateDraftTemplateAsync: draft created TemplateId:{TemplateId}", template.TemplateId);
+            _logger.LogInformation("CreateDraftBlendAsync: draft created BlendId:{BlendId}", blend.BlendId);
 
-            return new DraftTemplateCreatedDto(
-                template.TemplateId,
+            return new DraftBlendCreatedDto(
+                blend.BlendId,
                 ingredientsSection.SectionId,
                 prepSection.SectionId,
                 evalSection.SectionId
@@ -156,75 +156,75 @@ public class TemplateService : ITemplateService
         catch (Exception ex)
         {
             await transaction.RollbackAsync();
-            _logger.LogError(ex, "CreateDraftTemplateAsync failed and rolled back");
+            _logger.LogError(ex, "CreateDraftBlendAsync failed and rolled back");
             throw;
         }
     }
 
     // 2. Patches title, objective, and description on blur or debounce
-    public async Task<bool> UpdateHeaderAsync(int templateId, UpdateTemplateHeaderDto dto)
+    public async Task<bool> UpdateHeaderAsync(int blendId, UpdateBlendHeaderDto dto)
     {
         try
         {
-            _logger.LogInformation("UpdateHeaderAsync called for TemplateId:{TemplateId} by User:{UserId}", templateId, _currentUser.UserId);
-            var template = await _context.TemplateRecords
-                .FirstOrDefaultAsync(t => t.TemplateId == templateId && t.IsActive);
+            _logger.LogInformation("UpdateHeaderAsync called for BlendId:{BlendId} by User:{UserId}", blendId, _currentUser.UserId);
+            var blend = await _context.BlendRecords
+                .FirstOrDefaultAsync(b => b.BlendId == blendId && b.IsActive);
 
-            if (template == null)
+            if (blend == null)
             {
-                _logger.LogWarning("UpdateHeaderAsync: template {TemplateId} not found", templateId);
-                throw new NotFoundException($"Template with ID {templateId} not found or inactive.");
+                _logger.LogWarning("UpdateHeaderAsync: blend {BlendId} not found", blendId);
+                throw new NotFoundException($"Blend with ID {blendId} not found or inactive.");
             }
 
             // Apply header updates
-            template.Title = dto.Title;
-            template.Objective = dto.Objective;
-            template.Description = dto.Description;
+            blend.Title = dto.Title;
+            blend.Objective = dto.Objective;
+            blend.Description = dto.Description;
 
             // Update audit fields
-            template.UpdatedBy = _currentUser.UserId;
-            template.UpdatedDate = DateTime.UtcNow;
+            blend.UpdatedBy = _currentUser.UserId;
+            blend.UpdatedDate = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
-            _logger.LogInformation("UpdateHeaderAsync: template {TemplateId} updated", templateId);
+            _logger.LogInformation("UpdateHeaderAsync: blend {BlendId} updated", blendId);
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "UpdateHeaderAsync failed for TemplateId:{TemplateId}", templateId);
+            _logger.LogError(ex, "UpdateHeaderAsync failed for BlendId:{BlendId}", blendId);
             throw;
         }
     }
 
     // 3. Creates a new section container
-    public async Task<int> AddSectionAsync(int templateId, AddSectionDto dto)
+    public async Task<int> AddSectionAsync(int blendId, AddSectionDto dto)
     {
-        _logger.LogInformation("AddSectionAsync started for TemplateId:{TemplateId}, SectionType:{SectionType} by User:{UserId}",
-            templateId, dto.SectionTypeId, _currentUser.UserId);
+        _logger.LogInformation("AddSectionAsync started for BlendId:{BlendId}, SectionType:{SectionType} by User:{UserId}",
+            blendId, dto.SectionTypeId, _currentUser.UserId);
 
-        // 1. Validate Template Existence
-        var templateExists = await _context.TemplateRecords
-            .AnyAsync(t => t.TemplateId == templateId && t.OrganizationId == _currentUser.OrganizationId && t.IsActive);
+        // 1. Validate Blend Existence
+        var blendExists = await _context.BlendRecords
+            .AnyAsync(b => b.BlendId == blendId && b.OrganizationId == _currentUser.OrganizationId && b.IsActive);
 
-        if (!templateExists)
+        if (!blendExists)
         {
-            throw new KeyNotFoundException($"Template with ID {templateId} was not found.");
+            throw new KeyNotFoundException($"Blend with ID {blendId} was not found.");
         }
 
         // 2. Prevent Duplicate Section Types
         var existingSectionTypes = await _context.SectionRecords
-            .Where(s => s.ContainerId == templateId && s.ContainerTypeId == SectionContainerType.Template && s.IsActive)
+            .Where(s => s.ContainerId == blendId && s.ContainerTypeId == SectionContainerType.Blend && s.IsActive)
             .Select(s => s.SectionTypeId)
             .ToListAsync();
 
         //if (existingSectionTypes.Contains(dto.SectionType))
         //{
-        //    throw new InvalidOperationException($"Section of type '{dto.SectionType}' already exists on this template.");
+        //    throw new InvalidOperationException($"Section of type '{dto.SectionType}' already exists on this blend.");
         //}
 
         // Determine SectionOrder (put it after the last section)
         int maxOrder = await _context.SectionRecords
-            .Where(s => s.ContainerId == templateId && s.ContainerTypeId == SectionContainerType.Template && s.IsActive)
+            .Where(s => s.ContainerId == blendId && s.ContainerTypeId == SectionContainerType.Blend && s.IsActive)
             .Select(s => (int?)s.SectionOrder)
             .MaxAsync() ?? 0;
 
@@ -235,8 +235,8 @@ public class TemplateService : ITemplateService
             // 3. Create Section Record based on SectionType
             var section = new SectionRecord
             {
-                ContainerId = templateId,
-                ContainerTypeId = SectionContainerType.Template,
+                ContainerId = blendId,
+                ContainerTypeId = SectionContainerType.Blend,
                 SectionTypeId = dto.SectionTypeId,
                 SectionTitle = GetSectionTitle(dto.SectionTypeId),
                 SectionOrder = (byte)(maxOrder + 1),
@@ -300,15 +300,15 @@ public class TemplateService : ITemplateService
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();
 
-            _logger.LogInformation("AddSectionAsync succeeded: SectionId:{SectionId} created for TemplateId:{TemplateId}",
-                section.SectionId, templateId);
+            _logger.LogInformation("AddSectionAsync succeeded: SectionId:{SectionId} created for BlendId:{BlendId}",
+                section.SectionId, blendId);
 
             return section.SectionId;
         }
         catch (Exception ex)
         {
             await transaction.RollbackAsync();
-            _logger.LogError(ex, "AddSectionAsync failed for TemplateId:{TemplateId}", templateId);
+            _logger.LogError(ex, "AddSectionAsync failed for BlendId:{BlendId}", blendId);
             throw;
         }
     }
@@ -449,53 +449,53 @@ public class TemplateService : ITemplateService
         }
     }
 
-    public async Task<List<TemplateListItemDto>> GetTemplatesListAsync()
+    public async Task<List<BlendListItemDto>> GetBlendListAsync()
     {
         try
         {
-            var list = await _context.TemplateRecords
+            var list = await _context.BlendRecords
                 .AsNoTracking()
-                .Where(t => t.OrganizationId == _currentUser.OrganizationId && t.IsActive)
-                .OrderByDescending(t => t.UpdatedDate)
-                .Select(t => new TemplateListItemDto(
-                    t.TemplateId,
-                    t.Title,
-                    t.Objective,
-                    t.UpdatedDate,
-                    t.IsPublished
+                .Where(b => b.OrganizationId == _currentUser.OrganizationId && b.IsActive)
+                .OrderByDescending(b => b.UpdatedDate)
+                .Select(b => new BlendListItemDto(
+                    b.BlendId,
+                    b.Title,
+                    b.Objective,
+                    b.UpdatedDate,
+                    b.IsPublished
                 ))
                 .ToListAsync();
 
-            _logger.LogInformation("GetTemplatesListAsync: returning {Count} templates for Org:{OrgId}", list.Count, _currentUser.OrganizationId);
+            _logger.LogInformation("GetBlendListAsync: returning {Count} blends for Org:{OrgId}", list.Count, _currentUser.OrganizationId);
             return list;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "GetTemplatesListAsync failed for Org:{OrgId}", _currentUser.OrganizationId);
+            _logger.LogError(ex, "GetBlendListAsync failed for Org:{OrgId}", _currentUser.OrganizationId);
             throw;
         }
     }
 
-    //Get Template for Edit
-    public async Task<GetTemplateForEditDto?> GetTemplateForEditAsync(int templateId)
+    //Get Blend for Edit
+    public async Task<GetBlendForEditDto?> GetBlendForEditAsync(int blendId)
     {
         try
         {
-            _logger.LogInformation("GetTemplateForEditAsync called for TemplateId:{TemplateId} by User:{UserId}", templateId, _currentUser.UserId);
+            _logger.LogInformation("GetBlendForEditAsync called for BlendId:{BlendId} by User:{UserId}", blendId, _currentUser.UserId);
 
-            var template = await _context.TemplateRecords
+            var blend = await _context.BlendRecords
                 .AsNoTracking()
-                .FirstOrDefaultAsync(t => t.TemplateId == templateId && t.IsActive);
+                .FirstOrDefaultAsync(b => b.BlendId == blendId && b.IsActive);
 
-        if (template == null)
+        if (blend == null)
         {
-            _logger.LogWarning("GetTemplateForEditAsync: template {TemplateId} not found", templateId);
-            throw new NotFoundException($"Template with ID {templateId} not found.");
+            _logger.LogWarning("GetBlendForEditAsync: blend {BlendId} not found", blendId);
+            throw new NotFoundException($"Blend with ID {blendId} not found.");
         }
 
             var sections = await _context.SectionRecords
                 .AsNoTracking()
-                .Where(s => s.ContainerId == templateId && s.ContainerTypeId == SectionContainerType.Template && s.IsActive)
+                .Where(s => s.ContainerId == blendId && s.ContainerTypeId == SectionContainerType.Blend && s.IsActive)
                 .OrderBy(s => s.SectionOrder)
                 .ToListAsync();
 
@@ -532,20 +532,20 @@ public class TemplateService : ITemplateService
                            .ToList()
             )).ToList();
 
-            _logger.LogInformation("GetTemplateForEditAsync: template {TemplateId} retrieved with {SectionCount} sections", templateId, sectionDtos.Count);
+            _logger.LogInformation("GetBlendForEditAsync: blend {BlendId} retrieved with {SectionCount} sections", blendId, sectionDtos.Count);
 
-            return new GetTemplateForEditDto(
-                template.TemplateId,
-                template.Title,
-                template.Objective,
-                template.Description,
-                template.IsPublished,
+            return new GetBlendForEditDto(
+                blend.BlendId,
+                blend.Title,
+                blend.Objective,
+                blend.Description,
+                blend.IsPublished,
                 sectionDtos
             );
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "GetTemplateForEditAsync failed for TemplateId:{TemplateId}", templateId);
+            _logger.LogError(ex, "GetBlendForEditAsync failed for BlendId:{BlendId}", blendId);
             throw;
         }
     }
@@ -795,25 +795,25 @@ public class TemplateService : ITemplateService
         }
     }
 
-    public async Task SubmitAsync(int templateId, TemplateStatus submittedFor)
+    public async Task SubmitAsync(int blendId, BlendStatus submittedFor)
     {
-        var template = await _context.TemplateRecords.FirstOrDefaultAsync(t => t.TemplateId == templateId && t.IsActive)
-                        ?? throw new NotFoundException($"Template with ID {templateId} not found.");
-        template.Status = submittedFor ==  TemplateStatus.SubmittedForApproval ? TemplateStatus.SubmittedForApproval : TemplateStatus.SubmittedForReview;
-        await _workflowService.SubmitForApprovalAsync("Template", templateId, _currentUser.UserId);
+        var blend = await _context.BlendRecords.FirstOrDefaultAsync(b => b.BlendId == blendId && b.IsActive)
+                        ?? throw new NotFoundException($"Blend with ID {blendId} not found.");
+        blend.Status = submittedFor ==  BlendStatus.SubmittedForApproval ? BlendStatus.SubmittedForApproval : BlendStatus.SubmittedForReview;
+        await _workflowService.SubmitForApprovalAsync("Blend", blendId, _currentUser.UserId);
     }
-    public async Task ApproveAsync(int templateId, string? comments)
+    public async Task ApproveAsync(int blendId, string? comments)
     {
-        var template = await _context.TemplateRecords.FirstOrDefaultAsync(t => t.TemplateId == templateId && t.IsActive)
-                       ?? throw new NotFoundException($"Template with ID {templateId} not found.");
-        template.Status = template.Status == TemplateStatus.SubmittedForApproval ? TemplateStatus.Approved : TemplateStatus.SubmittedForReview;
-        await _workflowService.ApproveAsync("Template", templateId, _currentUser.UserId, comments);
+        var blend = await _context.BlendRecords.FirstOrDefaultAsync(b => b.BlendId == blendId && b.IsActive)
+                       ?? throw new NotFoundException($"Blend with ID {blendId} not found.");
+        blend.Status = blend.Status == BlendStatus.SubmittedForApproval ? BlendStatus.Approved : BlendStatus.SubmittedForReview;
+        await _workflowService.ApproveAsync("Blend", blendId, _currentUser.UserId, comments);
     }
-    public async Task RejectAsync(int templateId, string? comments)
+    public async Task RejectAsync(int blendId, string? comments)
     {
-        var template = await _context.TemplateRecords.FirstOrDefaultAsync(t => t.TemplateId == templateId && t.IsActive)
-                       ?? throw new NotFoundException($"Template with ID {templateId} not found.");
-        template.Status = TemplateStatus.Rejected;
-        await _workflowService.RejectAsync("Template", templateId, _currentUser.UserId, comments);
+        var blend = await _context.BlendRecords.FirstOrDefaultAsync(b => b.BlendId == blendId && b.IsActive)
+                       ?? throw new NotFoundException($"Blend with ID {blendId} not found.");
+        blend.Status = BlendStatus.Rejected;
+        await _workflowService.RejectAsync("Blend", blendId, _currentUser.UserId, comments);
     }
 }

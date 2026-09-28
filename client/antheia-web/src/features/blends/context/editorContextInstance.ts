@@ -2,7 +2,7 @@ import { createContext } from 'react';
 import type {
   EditorState,
   EditorAction,
-  TemplateEditorContextType,
+  BlendEditorContextType,
 } from '../types/editor.types';
 
 export const INITIAL_EDITOR_STATE: EditorState = {
@@ -24,6 +24,6 @@ export function editorReducer(
   }
 }
 
-export const TemplateEditorContext = createContext<
-  TemplateEditorContextType | undefined
+export const BlendEditorContext = createContext<
+  BlendEditorContextType | undefined
 >(undefined);

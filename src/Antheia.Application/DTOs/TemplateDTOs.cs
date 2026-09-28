@@ -2,7 +2,7 @@
 
 namespace Antheia.Application.DTOs;
 
-public record UpdateTemplateHeaderDto(
+public record UpdateBlendHeaderDto(
     string Title,
     string? Objective,
     string? Description
@@ -34,15 +34,15 @@ public record EvaluationDto(
     string? Status
 );
 
-public record DraftTemplateCreatedDto(
-    int TemplateId,
+public record DraftBlendCreatedDto(
+    int BlendId,
     int IngredientsSectionId,
     int PrepMethodSectionId,
     int EvaluationSectionId
 );
 
-public record TemplateListItemDto(
-    int TemplateId,
+public record BlendListItemDto(
+    int BlendId,
     string Title,
     string? Objective,
     DateTime UpdatedDate,

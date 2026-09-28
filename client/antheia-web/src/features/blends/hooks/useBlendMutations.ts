@@ -1,20 +1,19 @@
-// src/features/templates/hooks/useTemplateMutations.ts
 import { useMutation, useQueryClient, useMutationState } from '@tanstack/react-query';
-import {
-  templatesApi,
-  type UpdateTemplateHeaderDto,
+  import {
+    blendsApi,
+  type UpdateBlendHeaderDto,
   type CreateIngredientPayload,
   type UpdateIngredientPayload,
   type UpdatePrepMethodPayload,
   type CreateEvaluationPayload,
   type UpdateEvaluationPayload,
   type CreateSectionPayload,
-} from '../api/templatesApi';
+} from '../api/blendsApi';
 import type { SaveStatus } from '../../../shared/hooks/useAutoSave';
 
-export const useTemplateMutations = (templateId: number) => {
+export const useBlendMutations = (blendId: number) => {
   const queryClient = useQueryClient();
-  const mutationKey = ['template-mutation', templateId];
+  const mutationKey = ['blend-mutation', blendId];
 
   // 1. STABLE QUERY CACHE SUBSCRIPTION
   // Use pure primitives inside select so TanStack Query can memoize the output
@@ -46,9 +45,9 @@ export const useTemplateMutations = (templateId: number) => {
   }
 
   // Centralized query cache invalidation helper
-  const invalidateTemplate = () => {
-    queryClient.invalidateQueries({ queryKey: ['template', templateId] });
-    queryClient.invalidateQueries({ queryKey: ['templates'] });
+  const invalidateBlend = () => {
+    queryClient.invalidateQueries({ queryKey: ['blend', blendId] });
+    queryClient.invalidateQueries({ queryKey: ['blends'] });
   };
 
   // ==========================================
@@ -56,46 +55,46 @@ export const useTemplateMutations = (templateId: number) => {
   // ==========================================
   const updateHeaderMutation = useMutation({
     mutationKey,
-    mutationFn: (payload: UpdateTemplateHeaderDto) =>
-      templatesApi.updateTemplateHeader(templateId, payload),
-    onSuccess: invalidateTemplate,
+    mutationFn: (payload: UpdateBlendHeaderDto) =>
+      blendsApi.updateBlendHeader(blendId, payload),
+    onSuccess: invalidateBlend,
   });
 
   const addSectionMutation = useMutation({
     mutationKey,
     mutationFn: (payload: CreateSectionPayload) =>
-      templatesApi.addSection(templateId, payload),
-    onSuccess: invalidateTemplate,
+      blendsApi.addSection(blendId, payload),
+    onSuccess: invalidateBlend,
   });
 
   // Delete Mutation
   const deleteSectionMutation = useMutation({
-    mutationFn: (sectionId: number) => templatesApi.deleteSection(sectionId),
+    mutationFn: (sectionId: number) => blendsApi.deleteSection(sectionId),
     onSuccess: () => {
-      // Invalidate template query so UI, tree, and sections re-sync automatically
-      queryClient.invalidateQueries({ queryKey: ['template', templateId] });
+      // Invalidate blend query so UI, tree, and sections re-sync automatically
+      queryClient.invalidateQueries({ queryKey: ['blend', blendId] });
     },
   });
 
   const addIngredientMutation = useMutation({
     mutationKey,
     mutationFn: (payload: CreateIngredientPayload) =>
-      templatesApi.addIngredient(payload),
-    onSuccess: invalidateTemplate,
+      blendsApi.addIngredient(payload),
+    onSuccess: invalidateBlend,
   });
 
   const updateIngredientMutation = useMutation({
     mutationKey,
     mutationFn: ({ id, payload }: { id: number; payload: UpdateIngredientPayload }) =>
-      templatesApi.updateIngredient(id, payload),
-    onSuccess: invalidateTemplate,
+      blendsApi.updateIngredient(id, payload),
+    onSuccess: invalidateBlend,
   });
 
   const deleteIngredientMutation = useMutation({
     mutationKey,
     mutationFn: (ingredientId: number) =>
-      templatesApi.deleteIngredient(ingredientId),
-    onSuccess: invalidateTemplate,
+      blendsApi.deleteIngredient(ingredientId),
+    onSuccess: invalidateBlend,
   });
 
   const updatePrepMethodMutation = useMutation({
@@ -106,15 +105,15 @@ export const useTemplateMutations = (templateId: number) => {
     }: {
       prepId: number;
       payload: UpdatePrepMethodPayload;
-    }) => templatesApi.updatePrepMethod(prepId, payload),
-    onSuccess: invalidateTemplate,
+    }) => blendsApi.updatePrepMethod(prepId, payload),
+    onSuccess: invalidateBlend,
   });
 
   const addEvaluationMutation = useMutation({
     mutationKey,
     mutationFn: (payload: CreateEvaluationPayload) =>
-      templatesApi.addEvaluation(payload),
-    onSuccess: invalidateTemplate,
+      blendsApi.addEvaluation(payload),
+    onSuccess: invalidateBlend,
   });
 
   const updateEvaluationMutation = useMutation({
@@ -125,15 +124,15 @@ export const useTemplateMutations = (templateId: number) => {
     }: {
       evaluationId: number;
       payload: UpdateEvaluationPayload;
-    }) => templatesApi.updateEvaluation(evaluationId, payload),
-    onSuccess: invalidateTemplate,
+    }) => blendsApi.updateEvaluation(evaluationId, payload),
+    onSuccess: invalidateBlend,
   });
 
   const deleteEvaluationMutation = useMutation({
     mutationKey,
     mutationFn: (evaluationId: number) =>
-      templatesApi.deleteEvaluation(evaluationId),
-    onSuccess: invalidateTemplate,
+      blendsApi.deleteEvaluation(evaluationId),
+    onSuccess: invalidateBlend,
   });
 
   return {

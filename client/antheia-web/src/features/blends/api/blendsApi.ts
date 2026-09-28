@@ -1,7 +1,7 @@
 import apiClient from "../../../shared/api/apiClient";
-import type { EvaluationItem, FullTemplateResponse, Ingredient, PreparationMethod, SectionType } from "../types/template.types";
+import type { EvaluationItem, FullBlendResponse, Ingredient, PreparationMethod, SectionType } from "../types/blend.types";
 
-export interface UpdateTemplateHeaderDto {
+export interface UpdateBlendHeaderDto {
   title: string;
   objective: string;
   description: string;
@@ -48,52 +48,52 @@ export interface UpdateEvaluationPayload {
   status?: string | null;
 }
 
-export const templatesApi = {
+export const blendsApi = {
     
   // ==========================================
-  // 1. FULL TEMPLATE READ
+  // 1. FULL BLEND READ
   // ==========================================
-  getFullTemplate: async (templateId: number): Promise<FullTemplateResponse> => {
-    const response = await apiClient.get<FullTemplateResponse>(`/templates/${templateId}`);
+  getFullBlend: async (blendId: number): Promise<FullBlendResponse> => {
+    const response = await apiClient.get<FullBlendResponse>(`/blends/${blendId}`);
     return response.data;
   },
 
   // ==========================================
-  // 2. TEMPLATE HEADER UPDATE
+  // 2. BLEND HEADER UPDATE
   // ==========================================
-  updateTemplateHeader: async (templateId: number, payload: UpdateTemplateHeaderDto): Promise<void> => {
-    await apiClient.patch(`/templates/${templateId}/header`, payload);
+  updateBlendHeader: async (blendId: number, payload: UpdateBlendHeaderDto): Promise<void> => {
+    await apiClient.patch(`/blends/${blendId}/header`, payload);
   },
 
-  addSection: async (templateId: number, payload: CreateSectionPayload): Promise<void> => {
-    await apiClient.post(`/templates/${templateId}/sections`, payload);
+  addSection: async (blendId: number, payload: CreateSectionPayload): Promise<void> => {
+    await apiClient.post(`/blends/${blendId}/sections`, payload);
   },
 
   deleteSection: async (sectionId: number): Promise<void> => {
-    await apiClient.delete(`/templates/sections/${sectionId}`);
+    await apiClient.delete(`/blends/sections/${sectionId}`);
   },
   
   // ==========================================
   // 3. INGREDIENTS SECTION
   // ==========================================
   addIngredient: async (payload: CreateIngredientPayload): Promise<Ingredient> => {
-    const response = await apiClient.post<Ingredient>('/templates/ingredients', payload);
+    const response = await apiClient.post<Ingredient>('/blends/ingredients', payload);
     return response.data;
   },
 
   updateIngredient: async (id: number, payload: UpdateIngredientPayload): Promise<void> => {
-    await apiClient.patch(`/templates/ingredients/${id}`, payload);
+    await apiClient.patch(`/blends/ingredients/${id}`, payload);
   },
 
   deleteIngredient: async (id: number): Promise<void> => {
-    await apiClient.delete(`/templates/ingredients/${id}`);
+    await apiClient.delete(`/blends/ingredients/${id}`);
   },
 
   // ==========================================
   // 4. PREPARATION METHOD SECTION
   // ==========================================
   updatePrepMethod: async (prepId: number, payload: UpdatePrepMethodPayload): Promise<PreparationMethod> => {
-    const response = await apiClient.patch<PreparationMethod>(`/templates/prep-methods/${prepId}`, payload);
+    const response = await apiClient.patch<PreparationMethod>(`/blends/prep-methods/${prepId}`, payload);
     return response.data;
   },
 
@@ -101,15 +101,15 @@ export const templatesApi = {
   // 5. EVALUATION SECTION
   // ==========================================
   addEvaluation: async (payload: CreateEvaluationPayload): Promise<EvaluationItem> => {
-    const response = await apiClient.post<EvaluationItem>('/templates/evaluations', payload);
+    const response = await apiClient.post<EvaluationItem>('/blends/evaluations', payload);
     return response.data;
   },
 
   updateEvaluation: async (evaluationId: number, payload: UpdateEvaluationPayload): Promise<void> => {
-    await apiClient.patch(`/templates/evaluations/${evaluationId}`, payload);
+    await apiClient.patch(`/blends/evaluations/${evaluationId}`, payload);
   },
 
   deleteEvaluation: async (evaluationId: number): Promise<void> => {
-    await apiClient.delete(`/templates/evaluations/${evaluationId}`);
+    await apiClient.delete(`/blends/evaluations/${evaluationId}`);
   },
 };

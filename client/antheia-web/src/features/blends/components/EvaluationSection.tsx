@@ -11,20 +11,20 @@ import {
   Box,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import type { EvaluationItem } from '../types/template.types';
+import type { EvaluationItem } from '../types/blend.types';
 import { EvaluationRow } from './EvaluationRow';
-import { useTemplateMutations } from '../hooks/useTemplateMutations';
+import { useBlendMutations } from '../hooks/useBlendMutations';
 
 interface Props {
-  templateId: number;
+  blendId: number;
   sectionId: number;
   initialEvaluations: EvaluationItem[];
 }
 
-export const EvaluationSection: React.FC<Props> = ({ templateId, sectionId, initialEvaluations }) => {
+export const EvaluationSection: React.FC<Props> = ({ blendId, sectionId, initialEvaluations }) => {
   const [evaluations, setEvaluations] = useState<EvaluationItem[]>(initialEvaluations);
 
-  const { addEvaluationAsync, deleteEvaluationAsync } = useTemplateMutations(templateId);
+  const { addEvaluationAsync, deleteEvaluationAsync } = useBlendMutations(blendId);
 
   const addParam = async () => {
     try {
@@ -72,7 +72,7 @@ export const EvaluationSection: React.FC<Props> = ({ templateId, sectionId, init
           <TableBody>
             {evaluations.map((item) => (
               <EvaluationRow
-                templateId={templateId}
+                blendId={blendId}
                 key={item.evaluationId}
                 item={item}
                 onChange={updateField}

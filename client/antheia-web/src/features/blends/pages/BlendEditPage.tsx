@@ -14,14 +14,15 @@ import {
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 import { EditorHeader } from '../components/EditorHeader';
-import { TemplateEditor } from '../components/TemplateEditor';
+import { BlendEditor } from '../components/BlendEditor';
 import { SectionTree, type SectionNode } from '../components/SectionTree';
-import { useTemplate } from '../hooks/useTemplate';
-import { TemplateEditorProvider } from '../context/TemplateEditorContext';
+import { useBlend } from '../hooks/useBlend';
+import { BlendEditorProvider } from '../context/BlendEditorContext';
 import { useLayout } from '../../../shared/layouts/LayoutContext';
-import { useTemplateEditorContext } from '../hooks/useTemplateEditorContext';
+import { useBlendEditorContext } from '../hooks/useBlendEditorContext';
+import type { Section } from '../types/blend.types';
 
-const TemplateEditContent: React.FC = () => {
+const BlendEditContent: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const theme = useTheme();
@@ -35,13 +36,13 @@ const TemplateEditContent: React.FC = () => {
   } = useLayout();
 
   // TanStack Query for server data
-  const { data, isLoading, isError, error } = useTemplate(id);
+  const { data, isLoading, isError, error } = useBlend(id);
 
   // Reducer Context for UI state
-  const { state, setSelectedSection, setViewMode } = useTemplateEditorContext();
+  const { state, setSelectedSection, setViewMode } = useBlendEditorContext();
   const { selectedSectionId, viewMode } = state;
 
-  const templateId = useMemo(() => (id ? parseInt(id, 10) : null), [id]);
+  const blendId = useMemo(() => (id ? parseInt(id, 10) : null), [id]);
 
   // Helper function to resolve human-readable labels for section types
   const getSectionTypeLabel = (typeId: number): string => {
@@ -63,14 +64,14 @@ const TemplateEditContent: React.FC = () => {
     if (data?.sections && data.sections.length > 0) {
       // 1. Calculate counts for each section type
       const typeCounts: Record<number, number> = {};
-      data.sections.forEach((sec) => {
+      data.sections.forEach((sec: Section) => {
         typeCounts[sec.sectionTypeId] = (typeCounts[sec.sectionTypeId] || 0) + 1;
       });
 
       const currentTypeIndex: Record<number, number> = {};
 
       // 2. Build unique node for EVERY section item
-      data.sections.forEach((sec) => {
+      data.sections.forEach((sec: Section) => {
         const baseTitle = sec.sectionTitle || getSectionTypeLabel(sec.sectionTypeId);
         const totalOfThisType = typeCounts[sec.sectionTypeId] || 0;
 
@@ -135,19 +136,19 @@ const TemplateEditContent: React.FC = () => {
     }
   };
 
-  if (!templateId || isNaN(templateId)) {
+  if (!blendId || isNaN(blendId)) {
     return (
       <Container maxWidth="md" sx={{ py: 3 }}>
         <Paper variant="outlined" sx={{ p: 3 }}>
           <Typography variant="h6" color="error">
-            Invalid Template ID
+            Invalid Blend ID
           </Typography>
           <Button
             startIcon={<ArrowBackIcon />}
-            onClick={() => navigate('/templates')}
+            onClick={() => navigate('/blends')}
             sx={{ mt: 2 }}
           >
-            Back to Templates
+            Back to Blends
           </Button>
         </Paper>
       </Container>
@@ -166,14 +167,14 @@ const TemplateEditContent: React.FC = () => {
     return (
       <Container maxWidth="md" sx={{ py: 3 }}>
         <Alert severity="error">
-          {error?.message || 'Template not found'}
+          {error?.message || 'Blend not found'}
         </Alert>
         <Button
           startIcon={<ArrowBackIcon />}
-          onClick={() => navigate('/templates')}
+          onClick={() => navigate('/blends')}
           sx={{ mt: 2 }}
         >
-          Back to Templates
+          Back to Blends
         </Button>
       </Container>
     );
@@ -204,12 +205,12 @@ const TemplateEditContent: React.FC = () => {
       >
         <EditorHeader
           title={data.title}
-          templateId={templateId}
+          blendId={blendId}
           viewMode={viewMode}
           isMobile={isMobile}
           isSidebarCollapsed={isSidebarCollapsed}
           onToggleSidebar={handleToggleClick}
-          onBack={() => navigate('/templates')}
+          onBack={() => navigate('/blends')}
           onViewModeChange={(_e, newMode) => newMode && setViewMode(newMode)}
         />
       </Box>
@@ -222,7 +223,7 @@ const TemplateEditContent: React.FC = () => {
           py: { xs: 1, sm: 1 },
         }}
       >
-        <TemplateEditor
+        <BlendEditor
           data={data}
           selectedSectionId={selectedSectionId}
           viewMode={viewMode}
@@ -234,8 +235,8 @@ const TemplateEditContent: React.FC = () => {
 };
 
 // Wrapper ensuring the provider is scoped specifically to this page
-export const TemplateEditPage: React.FC = () => (
-  <TemplateEditorProvider>
-    <TemplateEditContent />
-  </TemplateEditorProvider>
+export const BlendEditPage: React.FC = () => (
+  <BlendEditorProvider>
+    <BlendEditContent />
+  </BlendEditorProvider>
 );

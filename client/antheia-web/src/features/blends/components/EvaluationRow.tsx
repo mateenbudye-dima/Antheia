@@ -1,19 +1,19 @@
 import React from 'react';
 import { TableRow, TableCell, TextField, Select, MenuItem, IconButton, Tooltip } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
-import type { EvaluationItem } from '../types/template.types';
+import type { EvaluationItem } from '../types/blend.types';
 import { useAutoSave } from '../../../shared/hooks/useAutoSave';
-import { useTemplateMutations } from '../hooks/useTemplateMutations';
+import { useBlendMutations } from '../hooks/useBlendMutations';
 
 interface EvaluationRowProps {
-  templateId: number;
+  blendId: number;
   item: EvaluationItem;
   onChange: (id: number, field: keyof EvaluationItem, value: string) => void;
   onDelete: (id: number) => void;
 }
 
-export const EvaluationRow: React.FC<EvaluationRowProps> = ({ templateId, item, onChange, onDelete }) => {
-  const { updateEvaluationAsync } = useTemplateMutations(templateId);
+export const EvaluationRow: React.FC<EvaluationRowProps> = ({ blendId, item, onChange, onDelete }) => {
+  const { updateEvaluationAsync } = useBlendMutations(blendId);
     
   useAutoSave({
       value: item,

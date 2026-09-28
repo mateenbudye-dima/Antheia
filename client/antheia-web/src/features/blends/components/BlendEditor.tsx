@@ -22,25 +22,25 @@ import { HeaderSection } from './HeaderSection';
 import { IngredientsSection } from './IngredientsSection';
 import { PrepMethodSection } from './PrepMethodSection';
 import { EvaluationSection } from './EvaluationSection';
-import { SectionType, type FullTemplateResponse, type Section } from '../types/template.types';
-import { useTemplateMutations } from '../hooks/useTemplateMutations';
-import type { CreateSectionPayload } from '../api/templatesApi';
+import { SectionType, type FullBlendResponse, type Section } from '../types/blend.types';
+import { useBlendMutations } from '../hooks/useBlendMutations';
+import type { CreateSectionPayload } from '../api/blendsApi';
 import { useConfirm } from '../../../shared/context/DialogContext'; // 👈 Global hook
 
-export interface TemplateEditorProps {
-  data: FullTemplateResponse;
+export interface BlendEditorProps {
+  data: FullBlendResponse;
   selectedSectionId: string;
   viewMode: 'split' | 'all';
   onSectionDeleted?: () => void;
 }
 
-export const TemplateEditor: React.FC<TemplateEditorProps> = ({
+export const BlendEditor: React.FC<BlendEditorProps> = ({
   data,
   selectedSectionId,
   viewMode,
   onSectionDeleted,
 }) => {
-  const { addSection, deleteSection, isSaving } = useTemplateMutations(data.templateId);
+  const { addSection, deleteSection, isSaving } = useBlendMutations(data.blendId);
   const confirm = useConfirm(); // 👈 Invoke confirmation dialog hook
 
   // Dropdown Menu State
@@ -144,7 +144,7 @@ export const TemplateEditor: React.FC<TemplateEditorProps> = ({
           section,
           <IngredientsSection
             key={section.sectionId}
-            templateId={data.templateId}
+            blendId={data.blendId}
             sectionId={section.sectionId}
             initialIngredients={section.ingredients || []}
           />
@@ -154,7 +154,7 @@ export const TemplateEditor: React.FC<TemplateEditorProps> = ({
           section,
           <PrepMethodSection
             key={section.sectionId}
-            templateId={data.templateId}
+            blendId={data.blendId}
             prepData={section.preparationMethod}
           />
         ) : null;
@@ -163,7 +163,7 @@ export const TemplateEditor: React.FC<TemplateEditorProps> = ({
           section,
           <EvaluationSection
             key={section.sectionId}
-            templateId={data.templateId}
+            blendId={data.blendId}
             sectionId={section.sectionId}
             initialEvaluations={section.evaluations || []}
           />
@@ -175,7 +175,7 @@ export const TemplateEditor: React.FC<TemplateEditorProps> = ({
 
   const renderHeader = () => (
     <HeaderSection
-      templateId={data.templateId}
+      blendId={data.blendId}
       initialTitle={data.title || ''}
       initialObjective={data.objective || ''}
       initialDescription={data.description || ''}
@@ -188,13 +188,13 @@ export const TemplateEditor: React.FC<TemplateEditorProps> = ({
         <Box>
           {selectedSectionId === 'header' && renderHeader()}
           {data.sections
-            ?.filter((sec) => String(sec.sectionId) === selectedSectionId)
+            ?.filter((sec: Section) => String(sec.sectionId) === selectedSectionId)
             .map((sec) => renderSectionNode(sec))}
         </Box>
       ) : (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
           {renderHeader()}
-          {data.sections?.map((sec) => renderSectionNode(sec))}
+          {data.sections?.map((sec: Section) => renderSectionNode(sec))}
         </Box>
       )}
 

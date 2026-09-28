@@ -2,28 +2,28 @@
 // 1. PUBLIC UI COMPONENTS
 // ==========================================
 // Only export top-level page or container components that other routes/pages need.
-export { TemplateEditor } from './components/TemplateEditor';
+export { BlendEditor } from './components/BlendEditor';
 
 // Optional: Export list/view components if they are consumed externally
-// export { TemplateList } from './components/TemplateList';
+// export { BlendList } from './components/BlendList';
 
 
 // ==========================================
 // 2. PUBLIC TYPES & DTOs
 // ==========================================
 // Export interfaces that external components, routers, or global state need.
-export * from './types/template.types';
+export * from './types/blend.types';
 
 
 // ==========================================
 // 3. PUBLIC API SERVICES (Optional)
 // ==========================================
 // Export API functions if parent pages need to invoke fetching directly.
-export { templatesApi } from './api/templatesApi';
+export { blendsApi } from './api/blendsApi';
 
 // ==========================================
 // 4. Pages
 // ==========================================
 // Export API functions if parent pages need to invoke fetching directly.
-export { TemplateEditPage } from './pages/TemplateEditPage';
-export { TemplateListPage } from './pages/TemplateListPage';
+export { BlendEditPage } from './pages/BlendEditPage';
+export { BlendListPage } from './pages/BlendListPage';

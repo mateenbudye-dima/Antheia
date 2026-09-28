@@ -1,4 +1,3 @@
-// src/features/templates/types/editor.types.ts
 export type ViewMode = 'split' | 'all';
 
 export interface EditorState {
@@ -10,7 +9,7 @@ export type EditorAction =
   | { type: 'SET_SELECTED_SECTION'; payload: string }
   | { type: 'SET_VIEW_MODE'; payload: ViewMode };
 
-export interface TemplateEditorContextType {
+export interface BlendEditorContextType {
   state: EditorState;
   dispatch: React.Dispatch<EditorAction>;
   setSelectedSection: (sectionId: string) => void;

@@ -1,19 +1,19 @@
 import React from 'react';
 import { TableRow, TableCell, TextField, IconButton, Tooltip } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
-import type { Ingredient } from '../types/template.types';
+import type { Ingredient } from '../types/blend.types';
 import { useAutoSave } from '../../../shared/hooks/useAutoSave';
-import { useTemplateMutations } from '../hooks/useTemplateMutations';
+import { useBlendMutations } from '../hooks/useBlendMutations';
 
 interface IngredientRowProps {
-  templateId: number;
+  blendId: number;
   item: Ingredient;
   onChange: (id: number, field: keyof Ingredient, value: string | number) => void;
   onDelete: (id: number) => void;
 }
 
-export const IngredientRow: React.FC<IngredientRowProps> = ({templateId, item, onChange, onDelete }) => {
-  const { updateIngredientAsync } = useTemplateMutations(templateId);
+export const IngredientRow: React.FC<IngredientRowProps> = ({blendId, item, onChange, onDelete }) => {
+  const { updateIngredientAsync } = useBlendMutations(blendId);
   
   useAutoSave({
     value: item,

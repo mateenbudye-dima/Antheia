@@ -11,24 +11,24 @@ using System.Security.Claims;
 [Authorize]
 [ApiController]
 [ApiVersion("1.0")] // Defines this controller as v1.0
-[Route("api/v{version:apiVersion}/[controller]")] // Generates /api/v1/templates
-public class TemplatesController : ControllerBase
+[Route("api/v{version:apiVersion}/[controller]")]
+public class BlendsController : ControllerBase
 {
-    private readonly ITemplateService _templateService;
-    private readonly ILogger<TemplatesController> _logger;
+    private readonly IBlendService _blendService;
+    private readonly ILogger<BlendsController> _logger;
 
-    public TemplatesController(ITemplateService templateService, ILogger<TemplatesController> logger)
+    public BlendsController(IBlendService blendService, ILogger<BlendsController> logger)
     {
-        _templateService = templateService;
+        _blendService = blendService;
         _logger = logger;
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetTemplates()
+    public async Task<IActionResult> GetBlends()
     {
-        _logger.LogInformation("GetTemplates called by {User}", User?.Identity?.Name ?? "anonymous");
-        var list = await _templateService.GetTemplatesListAsync();
-        _logger.LogInformation("GetTemplates returned {Count} templates", list?.Count ?? 0);
+        _logger.LogInformation("GetBlends called by {User}", User?.Identity?.Name ?? "anonymous");
+        var list = await _blendService.GetBlendListAsync();
+        _logger.LogInformation("GetBlends returned {Count} blends", list?.Count ?? 0);
         return Ok(list);
     }
 
@@ -36,66 +36,66 @@ public class TemplatesController : ControllerBase
     public async Task<IActionResult> CreateDraft()
     {
         _logger.LogInformation("CreateDraft called by {User}", User?.Identity?.Name ?? "anonymous");
-        var result = await _templateService.CreateDraftTemplateAsync();
-        _logger.LogInformation("CreateDraft created template {TemplateId}", result?.TemplateId);
+        var result = await _blendService.CreateDraftBlendAsync();
+        _logger.LogInformation("CreateDraft created blend {BlendId}", result?.BlendId);
         return Ok(result);
     }
 
-    [HttpGet("{templateId}")]
-    public async Task<IActionResult> GetTemplateForEdit(int templateId)
+    [HttpGet("{blendId}")]
+    public async Task<IActionResult> GetBlendForEdit(int blendId)
     {
-        _logger.LogInformation("GetTemplateForEdit called for TemplateId={TemplateId} by {User}", templateId, User?.Identity?.Name ?? "anonymous");
-        var template = await _templateService.GetTemplateForEditAsync(templateId);
-        if (template == null)
+        _logger.LogInformation("GetBlendForEdit called for BlendId={BlendId} by {User}", blendId, User?.Identity?.Name ?? "anonymous");
+        var blend = await _blendService.GetBlendForEditAsync(blendId);
+        if (blend == null)
         {
-            _logger.LogWarning("GetTemplateForEdit: template {TemplateId} not found", templateId);
+            _logger.LogWarning("GetBlendForEdit: blend {BlendId} not found", blendId);
             return NotFound();
         }
 
-        _logger.LogInformation("GetTemplateForEdit: template {TemplateId} retrieved", templateId);
-        return Ok(template);
+        _logger.LogInformation("GetBlendForEdit: blend {BlendId} retrieved", blendId);
+        return Ok(blend);
     }
 
     /// <summary>
-    /// Updates template header details (Title, Objective, Description).
+    /// Updates blend header details (Title, Objective, Description).
     /// </summary>
-    /// <param name="templateId">The target template ID.</param>
+    /// <param name="blendId">The target blend ID.</param>
     /// <param name="dto">Header update parameters.</param>
-    [HttpPatch("{templateId:int}/header")]
-    public async Task<IActionResult> UpdateHeader(int templateId, [FromBody] UpdateTemplateHeaderDto dto)
+    [HttpPatch("{blendId:int}/header")]
+    public async Task<IActionResult> UpdateHeader(int blendId, [FromBody] UpdateBlendHeaderDto dto)
     {
         if (!ModelState.IsValid)
         {
             return BadRequest(ModelState);
         }
-        _logger.LogInformation("UpdateHeader called for TemplateId={TemplateId} by {User}", templateId, User?.Identity?.Name ?? "anonymous");
+        _logger.LogInformation("UpdateHeader called for BlendId={BlendId} by {User}", blendId, User?.Identity?.Name ?? "anonymous");
 
-        var success = await _templateService.UpdateHeaderAsync(templateId, dto);
+        var success = await _blendService.UpdateHeaderAsync(blendId, dto);
 
         if (!success)
         {
-            _logger.LogWarning("UpdateHeader: template {TemplateId} not found or inactive", templateId);
-            return NotFound(new { message = $"Template with ID {templateId} not found or inactive." });
+            _logger.LogWarning("UpdateHeader: blend {BlendId} not found or inactive", blendId);
+            return NotFound(new { message = $"Blend with ID {blendId} not found or inactive." });
         }
 
-        _logger.LogInformation("UpdateHeader: template {TemplateId} updated", templateId);
+        _logger.LogInformation("UpdateHeader: blend {BlendId} updated", blendId);
         return NoContent(); // 204 No Content for successful auto-save updates
     }
 
     /// <summary>
-    /// Adds a new section to an existing formulation template draft.
-    /// Endpoint: POST /api/templates/sections
+    /// Adds a new section to an existing blend draft.
+    /// Endpoint: POST /api/blends/sections
     /// </summary>
-    [HttpPost("{templateId:int}/sections")]
+    [HttpPost("{blendId:int}/sections")]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> AddSection(int templateId, [FromBody] AddSectionDto dto)
+    public async Task<IActionResult> AddSection(int blendId, [FromBody] AddSectionDto dto)
     {
         // 1. Basic validation
-        if (dto == null || templateId <= 0)
+        if (dto == null || blendId <= 0)
         {
-            return BadRequest(new { message = "Invalid template parameters provided." });
+            return BadRequest(new { message = "Invalid blend parameters provided." });
         }
 
         // Enum range validation
@@ -106,12 +106,12 @@ public class TemplatesController : ControllerBase
 
         try
         {
-            int newSectionId = await _templateService.AddSectionAsync(templateId, dto);
+            int newSectionId = await _blendService.AddSectionAsync(blendId, dto);
 
             return CreatedAtAction(
-                nameof(GetTemplateForEdit),
-                new { templateId = templateId },
-                new { sectionId = newSectionId, templateId, sectionType = dto.SectionTypeId }
+                nameof(GetBlendForEdit),
+                new { blendId = blendId },
+                new { sectionId = newSectionId, blendId, sectionType = dto.SectionTypeId }
             );
         }
         catch (KeyNotFoundException ex)
@@ -126,25 +126,25 @@ public class TemplatesController : ControllerBase
     }
 
     /// <summary>
-    /// Deletes a specific section from a formulation template draft.
-    /// Endpoint: DELETE /api/templates/{templateId}/sections/{sectionId}
+    /// Deletes a specific section from a formulation blend draft.
+    /// Endpoint: DELETE /api/blends/{blendId}/sections/{sectionId}
     /// </summary>
-    [HttpDelete("sections/{sectionId:int}")]
+    [HttpDelete("{blendId:int}/sections/{sectionId:int}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> DeleteSection(int sectionId)
+    public async Task<IActionResult> DeleteSection(int blendId, int sectionId)
     {
         // 1. Basic validation
         if (sectionId <= 0)
         {
-            return BadRequest(new { message = "Invalid templateId or sectionId provided." });
+            return BadRequest(new { message = "Invalid blendId or sectionId provided." });
         }
 
         try
         {
-            // Pass both if service verifies section belongs to template
-            await _templateService.DeleteSectionAsync(sectionId);
+            // Pass both if service verifies section belongs to blendId, otherwise just sectionId is enough
+            await _blendService.DeleteSectionAsync(sectionId);
 
             return Ok(new { message = "Section deleted successfully." });
         }
@@ -171,9 +171,9 @@ public class TemplatesController : ControllerBase
         if (!ModelState.IsValid) return BadRequest(ModelState);
         _logger.LogInformation("AddIngredient called for SectionId={SectionId} by {User}", dto.SectionId, User?.Identity?.Name ?? "anonymous");
 
-        var result = await _templateService.AddIngredientAsync(dto);
+        var result = await _blendService.AddIngredientAsync(dto);
         _logger.LogInformation("AddIngredient created IngredientId={IngredientId} in SectionId={SectionId}", result?.SectionIngredientId, dto.SectionId);
-        return CreatedAtAction(nameof(GetTemplateForEdit), new { templateId = dto.SectionId }, result);
+        return CreatedAtAction(nameof(GetBlendForEdit), new { blendId = dto.SectionId }, result);
     }
 
     /// <summary>
@@ -185,7 +185,7 @@ public class TemplatesController : ControllerBase
         if (!ModelState.IsValid) return BadRequest(ModelState);
         _logger.LogInformation("UpdateIngredient called for IngredientId={IngredientId} by {User}", ingredientId, User?.Identity?.Name ?? "anonymous");
 
-        var success = await _templateService.UpdateIngredientAsync(ingredientId, dto);
+        var success = await _blendService.UpdateIngredientAsync(ingredientId, dto);
         if (!success)
         {
             _logger.LogWarning("UpdateIngredient: ingredient {IngredientId} not found", ingredientId);
@@ -202,7 +202,7 @@ public class TemplatesController : ControllerBase
     [HttpDelete("ingredients/{ingredientId:int}")]
     public async Task<IActionResult> DeleteIngredient(int ingredientId)
     {
-        var success = await _templateService.DeleteIngredientAsync(ingredientId);
+        var success = await _blendService.DeleteIngredientAsync(ingredientId);
         if (!success) return NotFound(new { message = $"Ingredient with ID {ingredientId} not found." });
 
         return NoContent();
@@ -220,7 +220,7 @@ public class TemplatesController : ControllerBase
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
 
-        var result = await _templateService.UpdatePreparationMethodAsync(prepId, dto);
+        var result = await _blendService.UpdatePreparationMethodAsync(prepId, dto);
         if (result == null) return NotFound(new { message = $"Preparation method record with ID {prepId} not found." });
 
         return Ok(result);
@@ -240,9 +240,9 @@ public class TemplatesController : ControllerBase
         if (!ModelState.IsValid) return BadRequest(ModelState);
         _logger.LogInformation("AddEvaluation called for SectionId={SectionId} by {User}", dto.SectionId, User?.Identity?.Name ?? "anonymous");
 
-        var result = await _templateService.AddEvaluationAsync(dto);
+        var result = await _blendService.AddEvaluationAsync(dto);
         _logger.LogInformation("AddEvaluation created EvaluationId={EvaluationId} in SectionId={SectionId}", result?.EvaluationId, dto.SectionId);
-        return CreatedAtAction(nameof(GetTemplateForEdit), new { templateId = dto.SectionId }, result);
+        return CreatedAtAction(nameof(GetBlendForEdit), new { blendId = dto.SectionId }, result);
     }
 
     /// <summary>
@@ -254,7 +254,7 @@ public class TemplatesController : ControllerBase
         if (!ModelState.IsValid) return BadRequest(ModelState);
         _logger.LogInformation("UpdateEvaluation called for EvaluationId={EvaluationId} by {User}", evaluationId, User?.Identity?.Name ?? "anonymous");
 
-        var success = await _templateService.UpdateEvaluationAsync(evaluationId, dto);
+        var success = await _blendService.UpdateEvaluationAsync(evaluationId, dto);
         if (!success)
         {
             _logger.LogWarning("UpdateEvaluation: evaluation {EvaluationId} not found", evaluationId);
@@ -273,7 +273,7 @@ public class TemplatesController : ControllerBase
     {
         _logger.LogInformation("DeleteEvaluation called for EvaluationId={EvaluationId} by {User}", evaluationId, User?.Identity?.Name ?? "anonymous");
 
-        var success = await _templateService.DeleteEvaluationAsync(evaluationId);
+        var success = await _blendService.DeleteEvaluationAsync(evaluationId);
         if (!success)
         {
             _logger.LogWarning("DeleteEvaluation: evaluation {EvaluationId} not found", evaluationId);
@@ -285,91 +285,91 @@ public class TemplatesController : ControllerBase
     }
 
     /// <summary>
-    /// Submits a template for approval. This action changes the template's status to "SubmittedForApproval" and triggers the workflow audit process.
+    /// Submits a blend for approval. This action changes the blend's status to "SubmittedForApproval" and triggers the workflow audit process.
     /// </summary>
-    /// <param name="id">template id</param>
+    /// <param name="id">blend id</param>
     /// <param name="dto"></param>
     /// <returns></returns>
     [HttpPost("{id}/submitForApproval")]
-    [AuditWorkflow("Template", requiredApprovalRole: "TemplateApprover")]
+    [AuditWorkflow("Blend", requiredApprovalRole: "BlendApprover")]
     public async Task<IActionResult> SubmitForApproval(int id)
     {
         var reviewerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "Unknown";
 
         // 1. Update Domain Entity State
-        await _templateService.SubmitAsync(id, TemplateStatus.SubmittedForApproval);
+        await _blendService.SubmitAsync(id, BlendStatus.SubmittedForApproval);
 
-        return Ok(new { Message = $"Template {id} submitted for approval successfully." });
+        return Ok(new { Message = $"Blend {id} submitted for approval successfully." });
     }
 
     /// <summary>
-    /// Submits a template for review. This action changes the template's status to "SubmittedForReview" and triggers the workflow audit process.
+    /// Submits a blend for review. This action changes the blend's status to "SubmittedForReview" and triggers the workflow audit process.
     /// </summary>
-    /// <param name="id">template id</param>
+    /// <param name="id">blend id</param>
     /// <param name="dto"></param>
     /// <returns></returns>
     [HttpPost("{id}/submitForReview")]
-    [AuditWorkflow("Template", requiredApprovalRole: "TemplateReviewer")]
+    [AuditWorkflow("Blend", requiredApprovalRole: "BlendReviewer")]
     public async Task<IActionResult> SubmitForReview(int id)
     {
         var reviewerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "Unknown";
 
         // 1. Update Domain Entity State
-        await _templateService.SubmitAsync(id, TemplateStatus.SubmittedForReview);
+        await _blendService.SubmitAsync(id, BlendStatus.SubmittedForReview);
 
-        return Ok(new { Message = $"Template {id} submitted for review successfully." });
+        return Ok(new { Message = $"Blend {id} submitted for review successfully." });
     }
 
     /// <summary>
-    /// Approves a submitted template. This action changes the template's status to "Approved" and triggers the workflow audit process.
+    /// Approves a submitted blend. This action changes the blend's status to "Approved" and triggers the workflow audit process.
     /// </summary>
-    /// <param name="id">template id</param>
+    /// <param name="id">blend id</param>
     /// <param name="dto"></param>
     /// <returns></returns>
     [HttpPost("{id}/approve")]
-    [AuditWorkflow("Template", requiredApprovalRole: "TemplateApprover")]
+    [AuditWorkflow("Blend", requiredApprovalRole: "BlendApprover")]
     public async Task<IActionResult> Approve(int id, string comments)
     {
         var reviewerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "Unknown";
 
         // 1. Update Domain Entity State
-        await _templateService.ApproveAsync(id, comments);
+        await _blendService.ApproveAsync(id, comments);
 
-        return Ok(new { Message = $"Template {id} approved successfully." });
+        return Ok(new { Message = $"Blend {id} approved successfully." });
     }
     /// <summary>
-    /// Approves a submitted template. This action changes the template's status to "Approved" and triggers the workflow audit process.
+    /// Approves a submitted blend. This action changes the blend's status to "Approved" and triggers the workflow audit process.
     /// </summary>
-    /// <param name="id">template id</param>
+    /// <param name="id">blend id</param>
     /// <param name="dto"></param>
     /// <returns></returns>
     [HttpPost("{id}/review")]
-    [AuditWorkflow("Template", requiredApprovalRole: "TemplateReviewer")]
+    [AuditWorkflow("Blend", requiredApprovalRole: "BlendReviewer")]
     public async Task<IActionResult> Review(int id, string comments)
     {
         var reviewerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "Unknown";
 
         // 1. Update Domain Entity State
-        await _templateService.ApproveAsync(id, comments);
+        await _blendService.ApproveAsync(id, comments);
 
-        return Ok(new { Message = $"Template {id} reviewed successfully." });
+        return Ok(new { Message = $"Blend {id} reviewed successfully." });
     }
 
     /// <summary>
-    /// Rejects a submitted template. This action changes the template's status to "Rejected" and triggers the workflow audit process.
+    /// Rejects a submitted blend. This action changes the blend's status to "Rejected" and triggers the workflow audit process.
     /// </summary>
-    /// <param name="id">template id</param>
+    /// <param name="id">blend id</param>
     /// <param name="dto"></param>
     /// <returns></returns>
     [HttpPost("{id}/reject")]
-    [AuditWorkflow("Template", requiredApprovalRole: "TemplateApprover")]
+    [AuditWorkflow("Blend", requiredApprovalRole: "BlendApprover")]
     public async Task<IActionResult> Reject(int id, string comments)
     {
         var reviewerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "Unknown";
 
         // 1. Update Domain Entity State
-        await _templateService.RejectAsync(id, comments);
+        await _blendService.RejectAsync(id, comments);
 
-        return Ok(new { Message = $"Template {id} rejected successfully." });
+        return Ok(new { Message = $"Blend {id} rejected successfully." });
     }
 }

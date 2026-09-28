@@ -23,7 +23,6 @@ import {
 import MenuIcon from '@mui/icons-material/Menu';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import LogoutIcon from '@mui/icons-material/Logout';
-import PersonIcon from '@mui/icons-material/Person';
 import DescriptionIcon from '@mui/icons-material/Description';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
@@ -44,8 +43,7 @@ export const Layout: React.FC = () => {
 
   const navItems = [
     { text: 'Dashboard', path: '/dashboard', icon: <DashboardIcon /> },
-    { text: 'Templates', path: '/templates', icon: <DescriptionIcon /> },
-    { text: 'Profile', path: '/profile', icon: <PersonIcon /> },
+    { text: 'Blends', path: '/blends', icon: <DescriptionIcon /> }
   ];
 
   const getCurrentTitle = () => {
@@ -62,7 +60,7 @@ export const Layout: React.FC = () => {
     <Box sx={{ overflow: 'auto', height: '100%' }}>
       <Toolbar sx={{ justifyContent: 'center', py: 1 }}>
         <Typography variant="h6" color="primary" sx={{ fontWeight: 'bold' }}>
-          {customSidebar ? 'Template Sections' : 'Antheia'}
+          Antheia
         </Typography>
       </Toolbar>
       <Divider />

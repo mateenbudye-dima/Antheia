@@ -41,7 +41,7 @@ public static class DependencyInjection
 
         // 4. Application Service Implementations
         services.AddScoped<IAuthService, AuthService>();
-        services.AddScoped<ITemplateService, TemplateService>();
+        services.AddScoped<IBlendService, BlendService>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
 
         return services;

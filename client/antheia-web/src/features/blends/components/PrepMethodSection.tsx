@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { Paper, Grid, TextField, InputAdornment } from '@mui/material';
-import type { PreparationMethod } from '../types/template.types';
+import type { PreparationMethod } from '../types/blend.types';
 import { useAutoSave } from '../../../shared/hooks/useAutoSave';
-import { useTemplateMutations } from '../hooks/useTemplateMutations';
+import { useBlendMutations } from '../hooks/useBlendMutations';
 
-export const PrepMethodSection: React.FC<{templateId:number, prepData: PreparationMethod }> = ({ templateId, prepData }) => {
+export const PrepMethodSection: React.FC<{blendId:number, prepData: PreparationMethod }> = ({ blendId, prepData }) => {
   const [prep, setPrep] = useState<PreparationMethod>(prepData);
 
-  const {updatePrepMethodAsync} = useTemplateMutations(templateId);
+  const {updatePrepMethodAsync} = useBlendMutations(blendId );
 
   useAutoSave({
     value: prep,

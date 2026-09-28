@@ -11,21 +11,21 @@ import {
   Box,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import type { Ingredient } from '../types/template.types';
+import type { Ingredient } from '../types/blend.types';
 import { IngredientRow } from './IngredientRow';
-import { useTemplateMutations } from '../hooks/useTemplateMutations';
+import { useBlendMutations } from '../hooks/useBlendMutations';
 
 interface Props {
-  templateId: number;
+  blendId: number;
   sectionId: number;
   initialIngredients: Ingredient[];
 }
 
-export const IngredientsSection: React.FC<Props> = ({ templateId, sectionId, initialIngredients }) => {
+export const IngredientsSection: React.FC<Props> = ({ blendId, sectionId, initialIngredients }) => {
   const [ingredients, setIngredients] = useState<Ingredient[]>(initialIngredients);
 
-  const { addIngredientAsync, deleteIngredientAsync } = useTemplateMutations(templateId);
-  
+  const { addIngredientAsync, deleteIngredientAsync } = useBlendMutations(blendId);
+
   const addRow = async () => {
     try {
       const newIngredient = await addIngredientAsync({
@@ -73,7 +73,7 @@ export const IngredientsSection: React.FC<Props> = ({ templateId, sectionId, ini
             {ingredients.map((item) => (
               <IngredientRow
                 key={item.sectionIngredientId}
-                templateId={templateId}
+                blendId={blendId}
                 item={item}
                 onChange={updateLocalField}
                 onDelete={deleteRow}

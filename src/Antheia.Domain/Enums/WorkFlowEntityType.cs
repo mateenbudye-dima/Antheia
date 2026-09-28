@@ -6,7 +6,8 @@ namespace Antheia.Domain.Enums
 {
     public enum WorkFlowEntityType
     {
-        Template = 1,
-        Experiment = 2
+        Blend = 1,
+        Template = 2,
+        Experiment = 3
     }
 }

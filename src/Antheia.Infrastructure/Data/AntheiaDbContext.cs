@@ -14,7 +14,7 @@ public partial class AntheiaDbContext : DbContext
     public virtual DbSet<Ingredient> Ingredients { get; set; }
     public virtual DbSet<PreparationMethod> PreparationMethods { get; set; }
     public virtual DbSet<SectionRecord> SectionRecords { get; set; }
-    public virtual DbSet<TemplateRecord> TemplateRecords { get; set; }
+    public virtual DbSet<BlendRecord> BlendRecords { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -83,14 +83,14 @@ public partial class AntheiaDbContext : DbContext
             entity.Property(e => e.UpdatedDate).HasColumnType("smalldatetime");
         });
 
-        modelBuilder.Entity<TemplateRecord>(entity =>
+        modelBuilder.Entity<BlendRecord>(entity =>
         {
             // Fixed: Explicit Primary Key mapping
-            entity.HasKey(e => e.TemplateId);
-            entity.ToTable("Record", "Template");
+            entity.HasKey(e => e.BlendId);
+            entity.ToTable("Record", "Blend");
 
             entity.Property(e => e.CreatedDate).HasColumnType("smalldatetime");
-            entity.Property(e => e.TemplatePrefix).HasMaxLength(100).IsUnicode(false);
+            entity.Property(e => e.BlendPrefix).HasMaxLength(100).IsUnicode(false);
             entity.Property(e => e.Title).HasMaxLength(200).IsUnicode(false);
             entity.Property(e => e.UpdatedDate).HasColumnType("smalldatetime");
         });

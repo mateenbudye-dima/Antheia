@@ -4,9 +4,9 @@ using System.Collections.Generic;
 
 namespace Antheia.Domain.Entities;
 
-public partial class TemplateRecord
+public partial class BlendRecord
 {
-    public int TemplateId { get; set; }
+    public int BlendId { get; set; }
 
     public short OrganizationId { get; set; }
 
@@ -30,11 +30,11 @@ public partial class TemplateRecord
 
     public DateTime UpdatedDate { get; set; }
 
-    public TemplateStatus? Status { get; set; }
+    public BlendStatus? Status { get; set; }
 
     public bool? IsMarkedComplete { get; set; }
 
-    public string? TemplatePrefix { get; set; }
+    public string? BlendPrefix { get; set; }
 
     public int? RunningNumber { get; set; }
 }

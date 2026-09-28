@@ -173,7 +173,7 @@ export const SectionTree: React.FC<SectionTreeProps> = ({
           color="text.secondary"
           sx={{ fontWeight: 'bold', letterSpacing: 0.5 }}
         >
-          TEMPLATE SECTIONS
+          BLEND SECTIONS
         </Typography>
       </Box>
 

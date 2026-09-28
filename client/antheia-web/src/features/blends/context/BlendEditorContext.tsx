@@ -1,11 +1,11 @@
 import React, { useReducer, type ReactNode } from 'react';
 import {
-  TemplateEditorContext,
+  BlendEditorContext,
   INITIAL_EDITOR_STATE,
   editorReducer,
 } from './editorContextInstance';
 
-export const TemplateEditorProvider: React.FC<{ children: ReactNode }> = ({
+export const BlendEditorProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
   const [state, dispatch] = useReducer(editorReducer, INITIAL_EDITOR_STATE);
@@ -19,10 +19,10 @@ export const TemplateEditorProvider: React.FC<{ children: ReactNode }> = ({
   };
 
   return (
-    <TemplateEditorContext.Provider
+    <BlendEditorContext.Provider
       value={{ state, dispatch, setSelectedSection, setViewMode }}
     >
       {children}
-    </TemplateEditorContext.Provider>
+    </BlendEditorContext.Provider>
   );
 };

@@ -19,25 +19,25 @@ import {
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
-import { useTemplates, useCreateTemplateDraft } from '../hooks/useTemplates';
+import { useCreateBlendDraft, useBlends } from '../hooks/useBlends';
 
-export const TemplateListPage: React.FC = () => {
+export const BlendListPage: React.FC = () => {
   const navigate = useNavigate();
 
-  // 1. TanStack Query for reading template list
-  const { data: templates = [], isLoading, isError, error } = useTemplates();
+  // 1. TanStack Query for reading blend list
+  const { data: blends = [], isLoading, isError, error } = useBlends();
 
-  // 2. TanStack Mutation for creating new template draft
-  const { mutate: createDraft, isPending: isCreating } = useCreateTemplateDraft();
+  // 2. TanStack Mutation for creating new blend draft
+  const { mutate: createDraft, isPending: isCreating } = useCreateBlendDraft();
 
-  const handleCreateNewTemplate = () => {
+  const handleCreateNewBlend = () => {
     createDraft(undefined, {
       onSuccess: (data) => {
-        navigate(`/templates/${data.templateId}/edit`);
+        navigate(`/blends/${data.blendId}/edit`);
       },
       onError: (err) => {
         const message = isAxiosError(err)
-          ? err.response?.data?.message || 'Could not create template draft.'
+          ? err.response?.data?.message || 'Could not create blend draft.'
           : err instanceof Error
           ? err.message
           : 'Failed to create new draft';
@@ -50,7 +50,7 @@ export const TemplateListPage: React.FC = () => {
   const getErrorMessage = () => {
     if (!error) return null;
     if (isAxiosError(error)) {
-      return error.response?.data?.message || 'Failed to load templates.';
+      return error.response?.data?.message || 'Failed to load blends.';
     }
     if (error instanceof Error) {
       return error.message;
@@ -93,10 +93,10 @@ export const TemplateListPage: React.FC = () => {
             sx={{ fontWeight: 'bold' }}
             gutterBottom
           >
-            Formulation Templates
+            Blends
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Manage and edit your platform product template specifications.
+            Manage and edit your platform product blend specifications.
           </Typography>
         </Box>
         <Button
@@ -104,11 +104,11 @@ export const TemplateListPage: React.FC = () => {
           startIcon={
             isCreating ? <CircularProgress size={20} color="inherit" /> : <AddIcon />
           }
-          onClick={handleCreateNewTemplate}
+          onClick={handleCreateNewBlend}
           disabled={isCreating}
           size="large"
         >
-          {isCreating ? 'Initializing Draft...' : 'Create New Template'}
+          {isCreating ? 'Initializing Draft...' : 'Create New Blend'}
         </Button>
       </Box>
 
@@ -119,8 +119,8 @@ export const TemplateListPage: React.FC = () => {
         </Alert>
       )}
 
-      {/* Templates Grid / Empty State */}
-      {templates.length === 0 ? (
+      {/* Blends Grid / Empty State */}
+      {blends.length === 0 ? (
         <Paper
           elevation={0}
           sx={{
@@ -131,14 +131,14 @@ export const TemplateListPage: React.FC = () => {
           }}
         >
           <Typography color="text.secondary">
-            No templates found. Click <strong>"+ Create New Template"</strong> to
+            No blends found. Click <strong>"+ Create New Blend"</strong> to
             start a new draft.
           </Typography>
         </Paper>
       ) : (
         <Grid container spacing={3}>
-          {templates.map((template) => (
-            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={template.templateId}>
+          {blends.map((blend) => (
+            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={blend.blendId}>
               <Card
                 variant="outlined"
                 sx={{
@@ -167,11 +167,11 @@ export const TemplateListPage: React.FC = () => {
                       component="h2"
                       sx={{ fontSize: '1.1rem', fontWeight: '600' }}
                     >
-                      {template.title || 'Untitled Template'}
+                      {blend.title || 'Untitled Blend'}
                     </Typography>
                     <Chip
-                      label={template.isPublished ? 'Published' : 'Draft'}
-                      color={template.isPublished ? 'success' : 'warning'}
+                      label={blend.isPublished ? 'Published' : 'Draft'}
+                      color={blend.isPublished ? 'success' : 'warning'}
                       size="small"
                       variant="outlined"
                       sx={{ fontWeight: 'bold' }}
@@ -189,7 +189,7 @@ export const TemplateListPage: React.FC = () => {
                       overflow: 'hidden',
                     }}
                   >
-                    {template.objective || 'No objective provided.'}
+                    {blend.objective || 'No objective provided.'}
                   </Typography>
                 </CardContent>
 
@@ -209,16 +209,16 @@ export const TemplateListPage: React.FC = () => {
                     sx={{ flexGrow: 1 }}
                   >
                     Updated:{' '}
-                    {new Date(template.updatedDate).toLocaleDateString()}
+                    {new Date(blend.updatedDate).toLocaleDateString()}
                   </Typography>
                   <Button
                     size="small"
                     endIcon={<ArrowForwardIcon />}
                     onClick={() =>
-                      navigate(`/templates/${template.templateId}/edit`)
+                      navigate(`/blends/${blend.blendId}/edit`)
                     }
                   >
-                    Edit Template
+                    Edit Blend
                   </Button>
                 </CardActions>
               </Card>
