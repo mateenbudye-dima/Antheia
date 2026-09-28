@@ -23,9 +23,12 @@ import {
 import MenuIcon from '@mui/icons-material/Menu';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import LogoutIcon from '@mui/icons-material/Logout';
-import DescriptionIcon from '@mui/icons-material/Description';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
+import ScienceIcon from '@mui/icons-material/Science';
+import BiotechIcon from '@mui/icons-material/Biotech';
+import QuizIcon from '@mui/icons-material/Quiz'; // or AssignmentTurnedIn
+import MonitorHeartIcon from '@mui/icons-material/MonitorHeart';
 import { useColorMode } from '../../context/ColorModeContext';
 import { useAuth } from '../../features/auth/hooks/useAuth';
 import { useLayout } from './LayoutContext';
@@ -42,12 +45,12 @@ export const Layout: React.FC = () => {
   const { customSidebar, isMobileSidebarOpen, setIsMobileSidebarOpen, toggleMobileSidebar } = useLayout();
 
   const navItems = [
-    { text: 'Dashboard', path: '/dashboard', icon: <DashboardIcon /> },
-    { text: 'Blends', path: '/blends', icon: <DescriptionIcon /> },
-    { text: 'Formulation Trials', path: '/formulation-trials', icon: <DescriptionIcon /> },
-    { text: 'Formulation Tests', path: '/formulation-tests', icon: <DescriptionIcon /> },
-    { text: 'Stability', path: '/stability', icon: <DescriptionIcon /> }
-  ];
+  { text: 'Dashboard', path: '/dashboard', icon: <DashboardIcon /> },
+  { text: 'Blends', path: '/blends', icon: <ScienceIcon /> },
+  { text: 'Formulation Trials', path: '/formulation-trials', icon: <BiotechIcon /> },
+  { text: 'Formulation Tests', path: '/formulation-tests', icon: <QuizIcon /> },
+  { text: 'Stability', path: '/stability', icon: <MonitorHeartIcon /> },
+];
 
   const getCurrentTitle = () => {
     const currentItem = navItems.find((item) =>

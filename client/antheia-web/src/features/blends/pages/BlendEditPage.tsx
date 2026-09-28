@@ -21,6 +21,7 @@ import { BlendEditorProvider } from '../context/BlendEditorContext';
 import { useLayout } from '../../../shared/layouts/LayoutContext';
 import { useBlendEditorContext } from '../hooks/useBlendEditorContext';
 import type { Section } from '../types/blend.types';
+import { NodeType } from '../types/editor.types';
 
 const BlendEditContent: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -59,7 +60,7 @@ const BlendEditContent: React.FC = () => {
   };
 
   const treeSections: SectionNode[] = useMemo(() => {
-    const nodes: SectionNode[] = [{ id: 'header', title: 'Header & Overview' }];
+    const nodes: SectionNode[] = [{ id: 'header', title: 'Header & Overview', nodeType: NodeType.Header }];
 
     if (data?.sections && data.sections.length > 0) {
       // 1. Calculate counts for each section type
@@ -85,6 +86,7 @@ const BlendEditContent: React.FC = () => {
         nodes.push({
           id: String(sec.sectionId), // 👈 Unique database section ID
           title,
+          nodeType: sec.sectionTypeId,
         });
       });
     }

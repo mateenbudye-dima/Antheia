@@ -15,10 +15,16 @@ import ExpandMore from '@mui/icons-material/ExpandMore';
 import FolderIcon from '@mui/icons-material/Folder';
 import FolderOpenIcon from '@mui/icons-material/FolderOpen';
 import ArticleIcon from '@mui/icons-material/Article';
+import ScienceIcon from '@mui/icons-material/Science'; // Ingredient
+import BlenderIcon from '@mui/icons-material/Blender'; // Preparation Method
+import FactCheckIcon from '@mui/icons-material/FactCheck'; // Evaluation Params
+import DescriptionIcon from '@mui/icons-material/Description'; // Default fallback
+import { NodeType } from '../types/editor.types';
 
 export interface SectionNode {
   id: string;
   title: string;
+  nodeType: NodeType; 
   children?: SectionNode[];
 }
 
@@ -57,6 +63,24 @@ const TreeItem: React.FC<TreeItemProps> = ({
     setOpen((prev) => !prev);
   };
 
+  const getSectionIcon = (type: NodeType) => {
+    switch (type) {
+      case NodeType.Header:
+        return <FolderIcon fontSize="small" />;
+      case NodeType.Ingredients:    
+        return <ScienceIcon fontSize="small"  />;
+
+      case NodeType.PreparationMethod:
+        return <BlenderIcon fontSize="small" />;
+
+      case NodeType.Evaluation:
+        return <FactCheckIcon fontSize="small"  />;
+
+      default:
+        return <DescriptionIcon fontSize="small" />;
+    }
+  };
+
   return (
     <>
       <ListItemButton
@@ -93,7 +117,7 @@ const TreeItem: React.FC<TreeItemProps> = ({
               <FolderIcon fontSize="small" />
             )
           ) : (
-            <ArticleIcon fontSize="small" />
+            getSectionIcon(node.nodeType) || <ArticleIcon fontSize="small" />
           )}
         </ListItemIcon>
 
