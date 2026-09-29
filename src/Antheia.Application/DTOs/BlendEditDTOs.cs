@@ -7,7 +7,8 @@ namespace Antheia.Application.DTOs
 {
     public record GetBlendForEditDto(
         int BlendId,
-        string Title,
+        string Code,
+        string? TrialNumber,
         string? Objective,
         string? Description,
         bool? IsPublished,

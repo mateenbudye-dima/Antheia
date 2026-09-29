@@ -3,9 +3,10 @@
 namespace Antheia.Application.DTOs;
 
 public record UpdateBlendHeaderDto(
-    string Title,
+    string Code,
     string? Objective,
-    string? Description
+    string? Description,
+    string? TrialNumber
 );
 
 public record AddSectionDto(
@@ -43,7 +44,8 @@ public record DraftBlendCreatedDto(
 
 public record BlendListItemDto(
     int BlendId,
-    string Title,
+    string Code,
+    string? TrialNumber,
     string? Objective,
     DateTime UpdatedDate,
     bool? IsPublished

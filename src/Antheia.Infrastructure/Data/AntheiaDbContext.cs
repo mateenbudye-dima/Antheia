@@ -90,7 +90,7 @@ public partial class AntheiaDbContext : DbContext
 
             entity.Property(e => e.CreatedDate).HasColumnType("smalldatetime");
             entity.Property(e => e.BlendPrefix).HasMaxLength(100).IsUnicode(false);
-            entity.Property(e => e.Title).HasMaxLength(200).IsUnicode(false);
+            entity.Property(e => e.Code).HasMaxLength(200).IsUnicode(false);
             entity.Property(e => e.UpdatedDate).HasColumnType("smalldatetime");
         });
 

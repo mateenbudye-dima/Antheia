@@ -12,7 +12,7 @@ public partial class BlendRecord
 
     public bool? IsPublished { get; set; }
 
-    public string Title { get; set; } = null!;
+    public string Code { get; set; } = null!;
 
     public string? Objective { get; set; }
 
@@ -36,5 +36,5 @@ public partial class BlendRecord
 
     public string? BlendPrefix { get; set; }
 
-    public int? RunningNumber { get; set; }
+    public string? TrialNumber { get; set; }
 }

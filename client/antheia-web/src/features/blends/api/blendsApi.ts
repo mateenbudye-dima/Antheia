@@ -2,9 +2,10 @@ import apiClient from "../../../shared/api/apiClient";
 import type { EvaluationItem, FullBlendResponse, Ingredient, IngredientType, PreparationMethod, SectionType } from "../types/blend.types";
 
 export interface UpdateBlendHeaderDto {
-  title: string;
+  code: string;
   objective: string;
   description: string;
+  trialNumber?: string;
 }
 export interface CreateSectionPayload {
   sectionTitle: string;

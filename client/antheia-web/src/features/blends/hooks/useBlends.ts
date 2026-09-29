@@ -3,7 +3,7 @@ import apiClient from '../../../shared/api/apiClient';
 
 export interface BlendItem {
   blendId: number;
-  title: string;
+  code: string;
   objective: string | null;
   updatedDate: string;
   isPublished: boolean | null;

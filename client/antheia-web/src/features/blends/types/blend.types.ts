@@ -71,7 +71,7 @@ export interface Section {
 
 export interface FullBlendResponse {
   blendId: number;
-  title: string;
+  code: string;
   objective: string;
   description: string;
   isPublished: boolean;

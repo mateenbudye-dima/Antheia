@@ -167,7 +167,7 @@ export const BlendListPage: React.FC = () => {
                       component="h2"
                       sx={{ fontSize: '1.1rem', fontWeight: '600' }}
                     >
-                      {blend.title || 'Untitled Blend'}
+                      {blend.code || 'Untitled Blend'}
                     </Typography>
                     <Chip
                       label={blend.isPublished ? 'Published' : 'Draft'}

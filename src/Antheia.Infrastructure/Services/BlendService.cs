@@ -39,7 +39,8 @@ public class BlendService : IBlendService
             // 1. Create Base Blend Record
             var blend = new BlendRecord
             {
-                Title = "Untitled Blend",
+                Code = "",
+                TrialNumber = "",
                 OrganizationId = _currentUser.OrganizationId,
                 AuthorId = _currentUser.UserId,
                 CreatedBy = _currentUser.UserId,
@@ -177,7 +178,8 @@ public class BlendService : IBlendService
             }
 
             // Apply header updates
-            blend.Title = dto.Title;
+            blend.Code = dto.Code;
+            blend.TrialNumber = dto.TrialNumber;
             blend.Objective = dto.Objective;
             blend.Description = dto.Description;
 
@@ -459,7 +461,8 @@ public class BlendService : IBlendService
                 .OrderByDescending(b => b.UpdatedDate)
                 .Select(b => new BlendListItemDto(
                     b.BlendId,
-                    b.Title,
+                    b.Code,
+                    b.TrialNumber,
                     b.Objective,
                     b.UpdatedDate,
                     b.IsPublished
@@ -536,12 +539,16 @@ public class BlendService : IBlendService
 
             return new GetBlendForEditDto(
                 blend.BlendId,
-                blend.Title,
+                blend.Code,
+                blend.TrialNumber,
                 blend.Objective,
                 blend.Description,
                 blend.IsPublished,
                 sectionDtos
-            );
+            )
+            {
+
+            };
         }
         catch (Exception ex)
         {

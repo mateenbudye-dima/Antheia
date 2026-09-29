@@ -14,7 +14,7 @@ import { StatusBadge } from '../../../shared/components/StatusBadge';
 import { useBlendMutations } from '../hooks/useBlendMutations';
 
 export interface EditorHeaderProps {
-  title?: string;
+  code?: string;
   blendId: number;
   viewMode: 'split' | 'all';
   isMobile: boolean;
@@ -28,7 +28,7 @@ export interface EditorHeaderProps {
 }
 
 export const EditorHeader: React.FC<EditorHeaderProps> = ({
-  title,
+  code,
   blendId,
   viewMode,
   onBack,
@@ -54,10 +54,10 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
         </Button>
       </Box>
 
-      {/* Center: Title + Global Status Badge */}
+      {/* Center: Code + Global Status Badge */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
         <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-          {title ? `Editing: ${title}` : `Editing Blend #${blendId}`}
+          {code ? `Editing: ${code}` : `Editing Blend #${blendId}`}
         </Typography>
         <StatusBadge status={saveStatus} />
       </Box>

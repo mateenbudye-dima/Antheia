@@ -206,7 +206,7 @@ const BlendEditContent: React.FC = () => {
         }}
       >
         <EditorHeader
-          title={data.title}
+          code={data.code}
           blendId={blendId}
           viewMode={viewMode}
           isMobile={isMobile}
