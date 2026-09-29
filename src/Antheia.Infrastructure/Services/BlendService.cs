@@ -191,9 +191,9 @@ public class BlendService : IBlendService
             _logger.LogInformation("UpdateHeaderAsync: blend {BlendId} updated", blendId);
             return true;
         }
-        catch (Exception ex)
+        catch (DbUpdateException dbEx)
         {
-            _logger.LogError(ex, "UpdateHeaderAsync failed for BlendId:{BlendId}", blendId);
+            _logger.LogError(dbEx, "UpdateHeaderAsync: database error for BlendId:{BlendId}", blendId);
             throw;
         }
     }
@@ -210,7 +210,7 @@ public class BlendService : IBlendService
 
         if (!blendExists)
         {
-            throw new KeyNotFoundException($"Blend with ID {blendId} was not found.");
+            throw new NotFoundException($"Blend with ID {blendId} was not found.");
         }
 
         // 2. Prevent Duplicate Section Types
@@ -302,8 +302,8 @@ public class BlendService : IBlendService
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();
 
-            _logger.LogInformation("AddSectionAsync succeeded: SectionId:{SectionId} created for BlendId:{BlendId}",
-                section.SectionId, blendId);
+            _logger.LogInformation("AddSectionAsync succeeded: SectionId:{SectionId} created for BlendId:{BlendId} (SectionType={SectionType})",
+                section.SectionId, blendId, section.SectionTypeId);
 
             return section.SectionId;
         }
@@ -324,23 +324,41 @@ public class BlendService : IBlendService
     };
 
     // 4. Soft deletes a section
-    public async Task DeleteSectionAsync(int sectionId)
+    public async Task<bool> DeleteSectionAsync(int sectionId)
     {
-        var section = await _context.SectionRecords.FindAsync(sectionId);
-        if (section == null)
+        _logger.LogInformation("DeleteSectionAsync called for SectionId:{SectionId} by User:{UserId}", sectionId, _currentUser.UserId);
+
+        try
         {
-            throw new KeyNotFoundException($"Active section with ID {sectionId}");
+            var section = await _context.SectionRecords.FindAsync(sectionId);
+            if (section == null)
+            {
+                _logger.LogWarning("DeleteSectionAsync: section {SectionId} not found", sectionId);
+                throw new NotFoundException($"Active section with ID {sectionId}");
+            }
+
+            section.IsActive = false;
+            section.UpdatedBy = _currentUser.UserId;
+            section.UpdatedDate = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+            _logger.LogInformation("DeleteSectionAsync: section {SectionId} soft-deleted", sectionId);
+            return true;
         }
-
-        section.IsActive = false;
-        section.UpdatedBy = _currentUser.UserId;
-        section.UpdatedDate = DateTime.UtcNow;
-
-        await _context.SaveChangesAsync();
+        catch (DbUpdateException dbEx)
+        {
+            _logger.LogError(dbEx, "DeleteSectionAsync: database error while deleting SectionId:{SectionId}", sectionId);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "DeleteSectionAsync failed for SectionId:{SectionId}", sectionId);
+            throw;
+        }
     }
 
     // 5. Reconciles and updates ingredients for a section
-    public async Task SyncIngredientsAsync(int sectionId, List<IngredientDto> ingredients)
+    public async Task<bool> SyncIngredientsAsync(int sectionId, List<IngredientDto> ingredients)
     {
         try
         {
@@ -368,16 +386,17 @@ public class BlendService : IBlendService
             _context.Ingredients.AddRange(newEntries);
             await _context.SaveChangesAsync();
             _logger.LogInformation("SyncIngredientsAsync: synced {Count} ingredients for SectionId:{SectionId}", ingredients?.Count ?? 0, sectionId);
+            return true;
         }
-        catch (Exception ex)
+        catch (DbUpdateException dbEx)
         {
-            _logger.LogError(ex, "SyncIngredientsAsync failed for SectionId:{SectionId}", sectionId);
+            _logger.LogError(dbEx, "SyncIngredientsAsync: database error for SectionId:{SectionId}", sectionId);
             throw;
         }
     }
 
     // 6. Upserts preparation method details
-    public async Task SavePrepMethodAsync(int sectionId, PrepMethodDto dto)
+    public async Task<bool> SavePrepMethodAsync(int sectionId, PrepMethodDto dto)
     {
         try
         {
@@ -406,16 +425,17 @@ public class BlendService : IBlendService
 
             await _context.SaveChangesAsync();
             _logger.LogInformation("SavePrepMethodAsync: preparation method upserted for SectionId:{SectionId}", sectionId);
+            return true;
         }
-        catch (Exception ex)
+        catch (DbUpdateException dbEx)
         {
-            _logger.LogError(ex, "SavePrepMethodAsync failed for SectionId:{SectionId}", sectionId);
+            _logger.LogError(dbEx, "SavePrepMethodAsync: database error for SectionId:{SectionId}", sectionId);
             throw;
         }
     }
 
     // 7. Reconciles evaluation parameters
-    public async Task SyncEvaluationsAsync(int sectionId, List<EvaluationDto> evaluations)
+    public async Task<bool> SyncEvaluationsAsync(int sectionId, List<EvaluationDto> evaluations)
     {
         try
         {
@@ -443,10 +463,11 @@ public class BlendService : IBlendService
             _context.Evaluations.AddRange(newEntries);
             await _context.SaveChangesAsync();
             _logger.LogInformation("SyncEvaluationsAsync: synced {Count} evaluations for SectionId:{SectionId}", evaluations?.Count ?? 0, sectionId);
+            return true;
         }
-        catch (Exception ex)
+        catch (DbUpdateException dbEx)
         {
-            _logger.LogError(ex, "SyncEvaluationsAsync failed for SectionId:{SectionId}", sectionId);
+            _logger.LogError(dbEx, "SyncEvaluationsAsync: database error for SectionId:{SectionId}", sectionId);
             throw;
         }
     }
@@ -455,6 +476,7 @@ public class BlendService : IBlendService
     {
         try
         {
+            _logger.LogInformation("GetBlends called by {User}", _currentUser.UserId);
             var list = await _context.BlendRecords
                 .AsNoTracking()
                 .Where(b => b.OrganizationId == _currentUser.OrganizationId && b.IsActive)
@@ -472,9 +494,9 @@ public class BlendService : IBlendService
             _logger.LogInformation("GetBlendListAsync: returning {Count} blends for Org:{OrgId}", list.Count, _currentUser.OrganizationId);
             return list;
         }
-        catch (Exception ex)
+        catch (DbUpdateException dbEx)
         {
-            _logger.LogError(ex, "GetBlendListAsync failed for Org:{OrgId}", _currentUser.OrganizationId);
+            _logger.LogError(dbEx, "GetBlendListAsync: database error for Org:{OrgId}", _currentUser.OrganizationId);
             throw;
         }
     }
@@ -550,9 +572,9 @@ public class BlendService : IBlendService
 
             };
         }
-        catch (Exception ex)
+        catch (DbUpdateException dbEx)
         {
-            _logger.LogError(ex, "GetBlendForEditAsync failed for BlendId:{BlendId}", blendId);
+            _logger.LogError(dbEx, "GetBlendForEditAsync: database error for BlendId:{BlendId}", blendId);
             throw;
         }
     }
@@ -561,20 +583,28 @@ public class BlendService : IBlendService
     // --- Ingredients Implementation ---
     public async Task<IngredientResponseDto> AddIngredientAsync(CreateIngredientDto dto)
     {
+        if (dto == null)
+        {
+            _logger.LogWarning("AddIngredientAsync: incoming DTO is null");
+            throw new ArgumentNullException(nameof(dto));
+        }
+
+        _logger.LogInformation("AddIngredientAsync called for SectionId:{SectionId} by User:{UserId}", dto.SectionId, _currentUser.UserId);
+
         try
         {
             var ingredient = new Ingredient
             {
-            SectionId = dto.SectionId,
-            Name = dto.Name,
-            Type = dto.Type,
-            Ratio = dto.Ratio,
-            Quantity = dto.Quantity,
-            IsActive = true,
-            CreatedBy = _currentUser.UserId,
-            UpdatedBy = _currentUser.UserId,
-            CreatedDate = DateTime.UtcNow,
-            UpdatedDate = DateTime.UtcNow
+                SectionId = dto.SectionId,
+                Name = dto.Name,
+                Type = dto.Type,
+                Ratio = dto.Ratio,
+                Quantity = dto.Quantity,
+                IsActive = true,
+                CreatedBy = _currentUser.UserId,
+                UpdatedBy = _currentUser.UserId,
+                CreatedDate = DateTime.UtcNow,
+                UpdatedDate = DateTime.UtcNow
             };
 
             _context.Ingredients.Add(ingredient);
@@ -590,6 +620,11 @@ public class BlendService : IBlendService
                 ingredient.Ratio,
                 ingredient.Quantity
             );
+        }
+        catch (DbUpdateException dbEx)
+        {
+            _logger.LogError(dbEx, "AddIngredientAsync: database error while adding ingredient to SectionId:{SectionId}", dto.SectionId);
+            throw;
         }
         catch (Exception ex)
         {
@@ -623,9 +658,9 @@ public class BlendService : IBlendService
             _logger.LogInformation("UpdateIngredientAsync: ingredient {IngredientId} updated", ingredientId);
             return true;
         }
-        catch (Exception ex)
+        catch (DbUpdateException dbEx)
         {
-            _logger.LogError(ex, "UpdateIngredientAsync failed for IngredientId:{IngredientId}", ingredientId);
+            _logger.LogError(dbEx, "UpdateIngredientAsync: database error for IngredientId:{IngredientId}", ingredientId);
             throw;
         }
     }
@@ -653,9 +688,9 @@ public class BlendService : IBlendService
             _logger.LogInformation("DeleteIngredientAsync: ingredient {IngredientId} soft-deleted", ingredientId);
             return true;
         }
-        catch (Exception ex)
+        catch (DbUpdateException dbEx)
         {
-            _logger.LogError(ex, "DeleteIngredientAsync failed for IngredientId:{IngredientId}", ingredientId);
+            _logger.LogError(dbEx, "DeleteIngredientAsync: database error for IngredientId:{IngredientId}", ingredientId);
             throw;
         }
     }
@@ -694,9 +729,9 @@ public class BlendService : IBlendService
                 prep.Temperature
             );
         }
-        catch (Exception ex)
+        catch (DbUpdateException dbEx)
         {
-            _logger.LogError(ex, "UpdatePreparationMethodAsync failed for PrepId:{PrepId}", prepId);
+            _logger.LogError(dbEx, "UpdatePreparationMethodAsync: database error for PrepId:{PrepId}", prepId);
             throw;
         }
     }
@@ -706,6 +741,7 @@ public class BlendService : IBlendService
     {
         try
         {
+            _logger.LogInformation("AddEvaluation called for SectionId={SectionId} by {User}", dto.SectionId, _currentUser.UserId);
             var evaluation = new Evaluation
             {
             SectionId = dto.SectionId,
@@ -733,9 +769,9 @@ public class BlendService : IBlendService
                 evaluation.Status
             );
         }
-        catch (Exception ex)
+        catch (DbUpdateException dbEx)
         {
-            _logger.LogError(ex, "AddEvaluationAsync failed for SectionId:{SectionId}", dto.SectionId);
+            _logger.LogError(dbEx, "AddEvaluationAsync: database error for SectionId:{SectionId}", dto.SectionId);
             throw;
         }
     }
@@ -765,9 +801,9 @@ public class BlendService : IBlendService
             _logger.LogInformation("UpdateEvaluationAsync: evaluation {EvaluationId} updated", evaluationId);
             return true;
         }
-        catch (Exception ex)
+        catch (DbUpdateException dbEx)
         {
-            _logger.LogError(ex, "UpdateEvaluationAsync failed for EvaluationId:{EvaluationId}", evaluationId);
+            _logger.LogError(dbEx, "UpdateEvaluationAsync: database error for EvaluationId:{EvaluationId}", evaluationId);
             throw;
         }
     }
@@ -795,32 +831,104 @@ public class BlendService : IBlendService
             _logger.LogInformation("DeleteEvaluationAsync: evaluation {EvaluationId} soft-deleted", evaluationId);
             return true;
         }
-        catch (Exception ex)
+        catch (DbUpdateException dbEx)
         {
-            _logger.LogError(ex, "DeleteEvaluationAsync failed for EvaluationId:{EvaluationId}", evaluationId);
+            _logger.LogError(dbEx, "DeleteEvaluationAsync: database error for EvaluationId:{EvaluationId}", evaluationId);
             throw;
         }
     }
 
-    public async Task SubmitAsync(int blendId, BlendStatus submittedFor)
+    public async Task<bool> SubmitAsync(int blendId, BlendStatus submittedFor)
     {
-        var blend = await _context.BlendRecords.FirstOrDefaultAsync(b => b.BlendId == blendId && b.IsActive)
-                        ?? throw new NotFoundException($"Blend with ID {blendId} not found.");
-        blend.Status = submittedFor ==  BlendStatus.SubmittedForApproval ? BlendStatus.SubmittedForApproval : BlendStatus.SubmittedForReview;
-        await _workflowService.SubmitForApprovalAsync("Blend", blendId, _currentUser.UserId);
+        _logger.LogInformation("SubmitAsync called for BlendId:{BlendId} by User:{UserId}", blendId, _currentUser.UserId);
+        try
+        {
+            var blend = await _context.BlendRecords.FirstOrDefaultAsync(b => b.BlendId == blendId && b.IsActive);
+            if (blend == null)
+            {
+                _logger.LogWarning("SubmitAsync: blend {BlendId} not found", blendId);
+                throw new NotFoundException($"Blend with ID {blendId} not found.");
+            }
+
+            blend.Status = submittedFor == BlendStatus.SubmittedForApproval ? BlendStatus.SubmittedForApproval : BlendStatus.SubmittedForReview;
+            await _context.SaveChangesAsync();
+
+            await _workflowService.SubmitForApprovalAsync("Blend", blendId, _currentUser.UserId);
+
+            _logger.LogInformation("SubmitAsync: BlendId:{BlendId} submitted with status {Status}", blendId, blend.Status);
+            return true;
+        }
+        catch (DbUpdateException dbEx)
+        {
+            _logger.LogError(dbEx, "SubmitAsync: DB error while submitting BlendId:{BlendId}", blendId);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "SubmitAsync failed for BlendId:{BlendId}", blendId);
+            throw;
+        }
     }
-    public async Task ApproveAsync(int blendId, string? comments)
+    public async Task<bool> ApproveAsync(int blendId, string? comments)
     {
-        var blend = await _context.BlendRecords.FirstOrDefaultAsync(b => b.BlendId == blendId && b.IsActive)
-                       ?? throw new NotFoundException($"Blend with ID {blendId} not found.");
-        blend.Status = blend.Status == BlendStatus.SubmittedForApproval ? BlendStatus.Approved : BlendStatus.SubmittedForReview;
-        await _workflowService.ApproveAsync("Blend", blendId, _currentUser.UserId, comments);
+        _logger.LogInformation("ApproveAsync called for BlendId:{BlendId} by User:{UserId}", blendId, _currentUser.UserId);
+        try
+        {
+            var blend = await _context.BlendRecords.FirstOrDefaultAsync(b => b.BlendId == blendId && b.IsActive);
+            if (blend == null)
+            {
+                _logger.LogWarning("ApproveAsync: blend {BlendId} not found", blendId);
+                throw new NotFoundException($"Blend with ID {blendId} not found.");
+            }
+
+            blend.Status = blend.Status == BlendStatus.SubmittedForApproval ? BlendStatus.Approved : BlendStatus.SubmittedForReview;
+            await _context.SaveChangesAsync();
+
+            await _workflowService.ApproveAsync("Blend", blendId, _currentUser.UserId, comments);
+
+            _logger.LogInformation("ApproveAsync: BlendId:{BlendId} workflow approve invoked", blendId);
+            return true;
+        }
+        catch (DbUpdateException dbEx)
+        {
+            _logger.LogError(dbEx, "ApproveAsync: DB error while approving BlendId:{BlendId}", blendId);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "ApproveAsync failed for BlendId:{BlendId}", blendId);
+            throw;
+        }
     }
-    public async Task RejectAsync(int blendId, string? comments)
+    public async Task<bool> RejectAsync(int blendId, string? comments)
     {
-        var blend = await _context.BlendRecords.FirstOrDefaultAsync(b => b.BlendId == blendId && b.IsActive)
-                       ?? throw new NotFoundException($"Blend with ID {blendId} not found.");
-        blend.Status = BlendStatus.Rejected;
-        await _workflowService.RejectAsync("Blend", blendId, _currentUser.UserId, comments);
+        _logger.LogInformation("RejectAsync called for BlendId:{BlendId} by User:{UserId}", blendId, _currentUser.UserId);
+        try
+        {
+            var blend = await _context.BlendRecords.FirstOrDefaultAsync(b => b.BlendId == blendId && b.IsActive);
+            if (blend == null)
+            {
+                _logger.LogWarning("RejectAsync: blend {BlendId} not found", blendId);
+                throw new NotFoundException($"Blend with ID {blendId} not found.");
+            }
+
+            blend.Status = BlendStatus.Rejected;
+            await _context.SaveChangesAsync();
+
+            await _workflowService.RejectAsync("Blend", blendId, _currentUser.UserId, comments);
+
+            _logger.LogInformation("RejectAsync: BlendId:{BlendId} workflow reject invoked", blendId);
+            return true;
+        }
+        catch (DbUpdateException dbEx)
+        {
+            _logger.LogError(dbEx, "RejectAsync: DB error while rejecting BlendId:{BlendId}", blendId);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "RejectAsync failed for BlendId:{BlendId}", blendId);
+            throw;
+        }
     }
 }

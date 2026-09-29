@@ -25,34 +25,22 @@ public class BlendsController : ControllerBase
 
     [HttpGet]
     public async Task<IActionResult> GetBlends()
-    {
-        _logger.LogInformation("GetBlends called by {User}", User?.Identity?.Name ?? "anonymous");
+    {        
         var list = await _blendService.GetBlendListAsync();
-        _logger.LogInformation("GetBlends returned {Count} blends", list?.Count ?? 0);
         return Ok(list);
     }
 
     [HttpPost("draft")]
     public async Task<IActionResult> CreateDraft()
     {
-        _logger.LogInformation("CreateDraft called by {User}", User?.Identity?.Name ?? "anonymous");
         var result = await _blendService.CreateDraftBlendAsync();
-        _logger.LogInformation("CreateDraft created blend {BlendId}", result?.BlendId);
         return Ok(result);
     }
 
     [HttpGet("{blendId}")]
     public async Task<IActionResult> GetBlendForEdit(int blendId)
     {
-        _logger.LogInformation("GetBlendForEdit called for BlendId={BlendId} by {User}", blendId, User?.Identity?.Name ?? "anonymous");
         var blend = await _blendService.GetBlendForEditAsync(blendId);
-        if (blend == null)
-        {
-            _logger.LogWarning("GetBlendForEdit: blend {BlendId} not found", blendId);
-            return NotFound();
-        }
-
-        _logger.LogInformation("GetBlendForEdit: blend {BlendId} retrieved", blendId);
         return Ok(blend);
     }
 
@@ -68,17 +56,7 @@ public class BlendsController : ControllerBase
         {
             return BadRequest(ModelState);
         }
-        _logger.LogInformation("UpdateHeader called for BlendId={BlendId} by {User}", blendId, User?.Identity?.Name ?? "anonymous");
-
-        var success = await _blendService.UpdateHeaderAsync(blendId, dto);
-
-        if (!success)
-        {
-            _logger.LogWarning("UpdateHeader: blend {BlendId} not found or inactive", blendId);
-            return NotFound(new { message = $"Blend with ID {blendId} not found or inactive." });
-        }
-
-        _logger.LogInformation("UpdateHeader: blend {BlendId} updated", blendId);
+        await _blendService.UpdateHeaderAsync(blendId, dto);
         return NoContent(); // 204 No Content for successful auto-save updates
     }
 
@@ -95,34 +73,24 @@ public class BlendsController : ControllerBase
         // 1. Basic validation
         if (dto == null || blendId <= 0)
         {
+            _logger.LogWarning("AddSection: invalid parameters. BlendId={BlendId}, DTO null={IsDtoNull}", blendId, dto == null);
             return BadRequest(new { message = "Invalid blend parameters provided." });
         }
 
         // Enum range validation
         if (dto.SectionTypeId == SectionType.Unknown || !Enum.IsDefined(typeof(SectionType), dto.SectionTypeId))
         {
+            _logger.LogWarning("AddSection: invalid SectionType provided for BlendId={BlendId}. SectionType={SectionType}", blendId, dto.SectionTypeId);
             return BadRequest(new { message = "Invalid SectionType provided." });
         }
 
-        try
-        {
-            int newSectionId = await _blendService.AddSectionAsync(blendId, dto);
+        int newSectionId = await _blendService.AddSectionAsync(blendId, dto);
 
-            return CreatedAtAction(
-                nameof(GetBlendForEdit),
-                new { blendId = blendId },
-                new { sectionId = newSectionId, blendId, sectionType = dto.SectionTypeId }
-            );
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(new { message = ex.Message });
-        }
-        catch (InvalidOperationException ex)
-        {
-            // Handles duplicate section validation exceptions from the service
-            return BadRequest(new { message = ex.Message });
-        }
+        return CreatedAtAction(
+            nameof(GetBlendForEdit),
+            new { blendId = blendId },
+            new { sectionId = newSectionId, blendId, sectionType = dto.SectionTypeId }
+        );
     }
 
     /// <summary>
@@ -135,27 +103,15 @@ public class BlendsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteSection(int blendId, int sectionId)
     {
-        // 1. Basic validation
         if (sectionId <= 0)
         {
+            _logger.LogWarning("DeleteSection: invalid sectionId provided. BlendId={BlendId}, SectionId={SectionId}", blendId, sectionId);
             return BadRequest(new { message = "Invalid blendId or sectionId provided." });
         }
 
-        try
-        {
-            // Pass both if service verifies section belongs to blendId, otherwise just sectionId is enough
-            await _blendService.DeleteSectionAsync(sectionId);
-
-            return Ok(new { message = "Section deleted successfully." });
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(new { message = ex.Message });
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
+        // Pass both if service verifies section belongs to blendId, otherwise just sectionId is enough
+        var success = await _blendService.DeleteSectionAsync(sectionId);
+        return Ok(new { message = "Section deleted successfully." });        
     }
 
     // ==========================================
@@ -168,8 +124,17 @@ public class BlendsController : ControllerBase
     [HttpPost("ingredients")]
     public async Task<IActionResult> AddIngredient([FromBody] CreateIngredientDto dto)
     {
-        if (!ModelState.IsValid) return BadRequest(ModelState);
-        _logger.LogInformation("AddIngredient called for SectionId={SectionId} by {User}", dto.SectionId, User?.Identity?.Name ?? "anonymous");
+        if (!ModelState.IsValid)
+        {
+            _logger.LogWarning("AddIngredient: invalid model state for incoming DTO. Errors={Errors}", ModelState.ErrorCount);
+            return BadRequest(ModelState);
+        }
+
+        if (dto == null)
+        {
+            _logger.LogWarning("AddIngredient: DTO is null");
+            return BadRequest(new { message = "Invalid ingredient data." });
+        }
 
         var result = await _blendService.AddIngredientAsync(dto);
         _logger.LogInformation("AddIngredient created IngredientId={IngredientId} in SectionId={SectionId}", result?.SectionIngredientId, dto.SectionId);
@@ -183,16 +148,7 @@ public class BlendsController : ControllerBase
     public async Task<IActionResult> UpdateIngredient(int ingredientId, [FromBody] UpdateIngredientDto dto)
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
-        _logger.LogInformation("UpdateIngredient called for IngredientId={IngredientId} by {User}", ingredientId, User?.Identity?.Name ?? "anonymous");
-
-        var success = await _blendService.UpdateIngredientAsync(ingredientId, dto);
-        if (!success)
-        {
-            _logger.LogWarning("UpdateIngredient: ingredient {IngredientId} not found", ingredientId);
-            return NotFound(new { message = $"Ingredient with ID {ingredientId} not found." });
-        }
-
-        _logger.LogInformation("UpdateIngredient: ingredient {IngredientId} updated", ingredientId);
+        var success = await _blendService.UpdateIngredientAsync(ingredientId, dto);      
         return NoContent();
     }
 
@@ -203,8 +159,6 @@ public class BlendsController : ControllerBase
     public async Task<IActionResult> DeleteIngredient(int ingredientId)
     {
         var success = await _blendService.DeleteIngredientAsync(ingredientId);
-        if (!success) return NotFound(new { message = $"Ingredient with ID {ingredientId} not found." });
-
         return NoContent();
     }
 
@@ -238,10 +192,7 @@ public class BlendsController : ControllerBase
     public async Task<IActionResult> AddEvaluation([FromBody] CreateEvaluationDto dto)
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
-        _logger.LogInformation("AddEvaluation called for SectionId={SectionId} by {User}", dto.SectionId, User?.Identity?.Name ?? "anonymous");
-
         var result = await _blendService.AddEvaluationAsync(dto);
-        _logger.LogInformation("AddEvaluation created EvaluationId={EvaluationId} in SectionId={SectionId}", result?.EvaluationId, dto.SectionId);
         return CreatedAtAction(nameof(GetBlendForEdit), new { blendId = dto.SectionId }, result);
     }
 
@@ -252,16 +203,7 @@ public class BlendsController : ControllerBase
     public async Task<IActionResult> UpdateEvaluation(int evaluationId, [FromBody] UpdateEvaluationDto dto)
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
-        _logger.LogInformation("UpdateEvaluation called for EvaluationId={EvaluationId} by {User}", evaluationId, User?.Identity?.Name ?? "anonymous");
-
-        var success = await _blendService.UpdateEvaluationAsync(evaluationId, dto);
-        if (!success)
-        {
-            _logger.LogWarning("UpdateEvaluation: evaluation {EvaluationId} not found", evaluationId);
-            return NotFound(new { message = $"Evaluation record with ID {evaluationId} not found." });
-        }
-
-        _logger.LogInformation("UpdateEvaluation: evaluation {EvaluationId} updated", evaluationId);
+        var success = await _blendService.UpdateEvaluationAsync(evaluationId, dto);        
         return NoContent();
     }
 
@@ -271,16 +213,7 @@ public class BlendsController : ControllerBase
     [HttpDelete("evaluations/{evaluationId:int}")]
     public async Task<IActionResult> DeleteEvaluation(int evaluationId)
     {
-        _logger.LogInformation("DeleteEvaluation called for EvaluationId={EvaluationId} by {User}", evaluationId, User?.Identity?.Name ?? "anonymous");
-
-        var success = await _blendService.DeleteEvaluationAsync(evaluationId);
-        if (!success)
-        {
-            _logger.LogWarning("DeleteEvaluation: evaluation {EvaluationId} not found", evaluationId);
-            return NotFound(new { message = $"Evaluation record with ID {evaluationId} not found." });
-        }
-
-        _logger.LogInformation("DeleteEvaluation: evaluation {EvaluationId} soft-deleted", evaluationId);
+        var success = await _blendService.DeleteEvaluationAsync(evaluationId);        
         return NoContent();
     }
 
@@ -295,10 +228,7 @@ public class BlendsController : ControllerBase
     public async Task<IActionResult> SubmitForApproval(int id)
     {
         var reviewerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "Unknown";
-
-        // 1. Update Domain Entity State
         await _blendService.SubmitAsync(id, BlendStatus.SubmittedForApproval);
-
         return Ok(new { Message = $"Blend {id} submitted for approval successfully." });
     }
 
@@ -313,10 +243,7 @@ public class BlendsController : ControllerBase
     public async Task<IActionResult> SubmitForReview(int id)
     {
         var reviewerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "Unknown";
-
-        // 1. Update Domain Entity State
         await _blendService.SubmitAsync(id, BlendStatus.SubmittedForReview);
-
         return Ok(new { Message = $"Blend {id} submitted for review successfully." });
     }
 
@@ -331,10 +258,7 @@ public class BlendsController : ControllerBase
     public async Task<IActionResult> Approve(int id, string comments)
     {
         var reviewerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "Unknown";
-
-        // 1. Update Domain Entity State
         await _blendService.ApproveAsync(id, comments);
-
         return Ok(new { Message = $"Blend {id} approved successfully." });
     }
     /// <summary>
@@ -348,10 +272,7 @@ public class BlendsController : ControllerBase
     public async Task<IActionResult> Review(int id, string comments)
     {
         var reviewerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "Unknown";
-
-        // 1. Update Domain Entity State
         await _blendService.ApproveAsync(id, comments);
-
         return Ok(new { Message = $"Blend {id} reviewed successfully." });
     }
 
@@ -366,10 +287,7 @@ public class BlendsController : ControllerBase
     public async Task<IActionResult> Reject(int id, string comments)
     {
         var reviewerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "Unknown";
-
-        // 1. Update Domain Entity State
         await _blendService.RejectAsync(id, comments);
-
         return Ok(new { Message = $"Blend {id} rejected successfully." });
     }
 }

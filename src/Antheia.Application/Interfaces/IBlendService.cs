@@ -11,10 +11,10 @@ public interface IBlendService
     Task<DraftBlendCreatedDto> CreateDraftBlendAsync();
     Task<bool> UpdateHeaderAsync(int blendId, UpdateBlendHeaderDto dto);
     Task<int> AddSectionAsync(int blendId, AddSectionDto dto);
-    Task DeleteSectionAsync(int sectionId);
-    Task SyncIngredientsAsync(int sectionId, List<IngredientDto> ingredients);
-    Task SavePrepMethodAsync(int sectionId, PrepMethodDto dto);
-    Task SyncEvaluationsAsync(int sectionId, List<EvaluationDto> evaluations);
+    Task<bool> DeleteSectionAsync(int sectionId);
+    Task<bool> SyncIngredientsAsync(int sectionId, List<IngredientDto> ingredients);
+    Task<bool> SavePrepMethodAsync(int sectionId, PrepMethodDto dto);
+    Task<bool> SyncEvaluationsAsync(int sectionId, List<EvaluationDto> evaluations);
     Task<List<BlendListItemDto>> GetBlendListAsync();
     Task<GetBlendForEditDto?> GetBlendForEditAsync(int blendId);
 
@@ -31,7 +31,7 @@ public interface IBlendService
     Task<bool> UpdateEvaluationAsync(int evaluationId, UpdateEvaluationDto dto);
     Task<bool> DeleteEvaluationAsync(int evaluationId);
 
-    Task SubmitAsync(int entityId, BlendStatus submittedFor);
-    Task ApproveAsync(int entityId, string? comments);
-    Task RejectAsync(int entityId, string? comments);
+    Task<bool> SubmitAsync(int entityId, BlendStatus submittedFor);
+    Task<bool> ApproveAsync(int entityId, string? comments);
+    Task<bool> RejectAsync(int entityId, string? comments);
 }
