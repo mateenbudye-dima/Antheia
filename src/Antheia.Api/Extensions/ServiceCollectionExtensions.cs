@@ -1,5 +1,4 @@
 ﻿namespace Antheia.Api.Extensions;
-
 using Asp.Versioning.ApiExplorer;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.DependencyInjection;
@@ -77,7 +76,7 @@ public static class ServiceCollectionExtensions
                 Scheme = "bearer",
                 BearerFormat = "JWT"
             });
-
+            options.OperationFilter<CommonApiResponseFilter>();
             options.AddSecurityRequirement(document =>
                 new OpenApiSecurityRequirement
                 {
