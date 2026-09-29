@@ -179,3 +179,4 @@ coverage/
 .idea/
 *.sln.iml
 *.DotSettings.user
+/.github
