@@ -1,6 +1,14 @@
 import apiClient from "../../../shared/api/apiClient";
 import type { EvaluationItem, FullBlendResponse, Ingredient, IngredientType, PreparationMethod, SectionType } from "../types/blend.types";
 
+export interface BlendItem {
+  blendId: number;
+  code: string;
+  trialNumber?: string | null;
+  objective: string | null;
+  updatedDate: string;
+  isPublished: boolean | null;
+}
 export interface UpdateBlendHeaderDto {
   code: string;
   objective: string;
@@ -51,6 +59,16 @@ export interface UpdateEvaluationPayload {
 
 export const blendsApi = {
     
+  getBlends: async (): Promise<BlendItem[]> => {
+    const { data } = await apiClient.get<BlendItem[]>('/blends');
+    return data;
+  },
+
+  createDraft: async (): Promise<{ blendId: number }> => {
+    const { data } = await apiClient.post<{ blendId: number }>('/blends/draft');
+    return data;
+  },
+  
   // ==========================================
   // 1. FULL BLEND READ
   // ==========================================

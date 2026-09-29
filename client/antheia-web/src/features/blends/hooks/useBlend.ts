@@ -1,12 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 import type { FullBlendResponse } from '../types/blend.types';
 import { blendsApi } from '../api/blendsApi';
+import { blendKeys } from '../api/blendKeys';
 
-export const useBlend = (id: string | undefined) => {
-  const blendId = id ? parseInt(id, 10) : null;
+export const useBlend = (blendId: number) => {
 
   return useQuery<FullBlendResponse, Error>({
-    queryKey: ['blend', blendId],
+    queryKey: blendKeys.detail(blendId),
     queryFn: () => {
       if (!blendId || isNaN(blendId)) {
         throw new Error('Invalid blend ID');

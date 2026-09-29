@@ -176,7 +176,8 @@ export const BlendEditor: React.FC<BlendEditorProps> = ({
   const renderHeader = () => (
     <HeaderSection
       blendId={data.blendId}
-      initialTitle={data.code || ''}
+      initialCode={data.code || ''}
+      initialTrialNumber={data.trialNumber || ''}
       initialObjective={data.objective || ''}
       initialDescription={data.description || ''}
     />

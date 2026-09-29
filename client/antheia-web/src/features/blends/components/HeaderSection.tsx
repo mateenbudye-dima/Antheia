@@ -5,7 +5,7 @@ import { useBlendMutations } from '../hooks/useBlendMutations';
 import type { UpdateBlendHeaderDto } from '../api/blendsApi';
 interface Props {
   blendId: number;
-  initialTitle: string;
+  initialCode: string;
   initialTrialNumber?: string;
   initialObjective: string;
   initialDescription: string;
@@ -13,13 +13,13 @@ interface Props {
 
 export const HeaderSection: React.FC<Props> = ({
   blendId,
-  initialTitle,
+  initialCode,
   initialTrialNumber = '',
   initialObjective,
   initialDescription,
 }) => {
   const [headerData, setHeaderData] = useState({
-    code: initialTitle,
+    code: initialCode,
     trialNumber: initialTrialNumber,
     objective: initialObjective,
     description: initialDescription,
