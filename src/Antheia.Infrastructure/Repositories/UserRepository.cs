@@ -20,22 +20,74 @@ namespace Antheia.Infrastructure.Repositories
         {
             var lowered = username.ToLowerInvariant();
 
-            return await _context.Users
+            // Step 1: Query basic user authentication info
+            var userBase = await _context.Users
                 .AsNoTracking()
-                .Include(u => u.Membership)
-                .Include(u => u.Roles)
                 .Where(u => u.LoweredUserName == lowered)
-                .Select(u => new UserAuthData(
+                .Select(u => new
+                {
                     u.UserId,
                     u.UserName,
-                    u.Membership!.Password,
-                    u.Membership.PasswordSalt,
-                    u.Membership.PasswordFormat,
-                    u.Membership.IsApproved,
-                    u.Membership.IsLockedOut,
-                    u.Roles.Select(r => r.RoleName).ToList()
-                ))
+                    Password = u.Membership!.Password,
+                    PasswordSalt = u.Membership.PasswordSalt,
+                    PasswordFormat = u.Membership.PasswordFormat,
+                    IsApproved = u.Membership.IsApproved,
+                    IsLockedOut = u.Membership.IsLockedOut
+                })
                 .FirstOrDefaultAsync();
+
+            if (userBase == null)
+            {
+                return null;
+            }
+
+            // Step 2: Query OrganizationId, active Roles, and active PrivilegeIds
+            var rolePrivilegeData = await (
+                from du in _context.DepartmentUsers
+                join dept in _context.Departments on du.DepartmentId equals dept.DepartmentId
+                join role in _context.OrganizationRoles on du.RoleId equals role.RoleId
+                join rp in _context.RolePrivileges on role.RoleId equals rp.RoleId into rpGroup
+                from rp in rpGroup.DefaultIfEmpty()
+                where du.UserId == userBase.UserId
+                   && du.IsActive
+                   && dept.IsActive
+                   && role.IsActive
+                   && (rp == null || rp.IsActive)
+                select new
+                {
+                    dept.OrganizationId,
+                    role.RoleName,
+                    PrivilegeId = (short?)rp.PrivilegeId
+                }
+            ).AsNoTracking().ToListAsync();
+
+            // Step 3: Materialize distinct lists in memory
+            int organizationId = rolePrivilegeData.Select(x => (int)x.OrganizationId).FirstOrDefault();
+
+            var roles = rolePrivilegeData
+                .Select(x => x.RoleName)
+                .Distinct()
+                .ToList();
+
+            var privileges = rolePrivilegeData
+                .Where(x => x.PrivilegeId.HasValue)
+                .Select(x => (int)x.PrivilegeId!.Value)
+                .Distinct()
+                .ToList();
+
+            // Step 4: Construct final DTO
+            return new UserAuthData(
+                userBase.UserId,
+                userBase.UserName,
+                userBase.Password,
+                userBase.PasswordSalt,
+                userBase.PasswordFormat,
+                userBase.IsApproved,
+                userBase.IsLockedOut,
+                organizationId,
+                roles,
+                privileges
+            );
         }
     }
 }

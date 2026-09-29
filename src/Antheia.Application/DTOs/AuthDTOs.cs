@@ -16,6 +16,8 @@ namespace Antheia.Application.DTOs
         int PasswordFormat,
         bool IsApproved,
         bool IsLockedOut,
-        List<string> Roles
+        int OrganizationId,
+        List<string> Roles,
+        List<int> Privileges
     );
 }

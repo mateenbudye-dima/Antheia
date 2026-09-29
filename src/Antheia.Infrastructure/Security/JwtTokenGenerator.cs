@@ -30,14 +30,22 @@ namespace Antheia.Infrastructure.Security
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             var claims = new List<Claim>
-        {
-            new(ClaimTypes.NameIdentifier, user.UserId.ToString()),
-            new(ClaimTypes.Name, user.UserName)
-        };
+            {
+                new(ClaimTypes.NameIdentifier, user.UserId.ToString()),
+                new(ClaimTypes.Name, user.UserName),
+                new("org_id", user.OrganizationId.ToString())
+            };
 
+            // Add Roles
             foreach (var role in user.Roles)
             {
                 claims.Add(new Claim(ClaimTypes.Role, role));
+            }
+
+            // Add Privileges as custom claims
+            foreach (var privilegeId in user.Privileges)
+            {
+                claims.Add(new Claim("privilege", privilegeId.ToString()));
             }
 
             var expires = DateTime.UtcNow.AddMinutes(expiryMinutes);

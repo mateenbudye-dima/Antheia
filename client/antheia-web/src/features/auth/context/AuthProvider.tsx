@@ -20,7 +20,7 @@ const parseJwtUser = (storedToken: string): User | null => {
       return null;
     }
 
-    // Extract values matching your backend's claim structure
+    // Extract username & userId
     const username =
       decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] ||
       decoded.unique_name ||
@@ -33,14 +33,34 @@ const parseJwtUser = (storedToken: string): User | null => {
       decoded.sub ||
       '';
 
+    // Extract roles (handles string, array, or missing)
     const rawRoles =
       decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] ||
       decoded.role ||
       [];
 
-    const roles = Array.isArray(rawRoles) ? rawRoles : [rawRoles].filter(Boolean);
+    const roles = Array.isArray(rawRoles)
+      ? rawRoles
+      : [rawRoles].filter(Boolean);
 
-    return { userId, username, roles };
+    // Extract custom privilege claims (handles single number/string or array)
+    const rawPrivileges = decoded.privilege || [];
+    const privileges = (
+      Array.isArray(rawPrivileges) ? rawPrivileges : [rawPrivileges]
+    )
+      .map((p) => p)
+      .filter((p) => !isNaN(p));
+
+    // Extract Organization ID
+    const orgId = Number(decoded.org_id || 0);
+
+    return {
+      userId,
+      username,
+      roles,
+      privileges,
+      orgId
+    };
   } catch (e) {
     console.error('Failed to parse JWT payload:', e);
     return null;
@@ -85,6 +105,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         userId: response.userId,
         username: response.username,
         roles: Array.isArray(response.roles) ? response.roles : [response.roles].filter(Boolean),
+        privileges: Array.isArray(response.privileges) ? response.privileges : [response.privileges].filter(Boolean),
+        orgId: Number(response.org_id || 0),
       });
     } catch (err: unknown) {
       if (isAxiosError(err)) {
