@@ -8,15 +8,15 @@ public static class AuditDbInitializer
     {
         const string sqlScript = """
             -- 1. Ensure Schema Exists
-            IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = N'audit')
+            IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = N'WorkflowAudit')
             BEGIN
-                EXEC('CREATE SCHEMA [audit] AUTHORIZATION [dbo]');
+                EXEC('CREATE SCHEMA [WorkflowAudit] AUTHORIZATION [dbo]');
             END;
 
             -- 2. Ensure AuditLogs Table Exists
-            IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[audit].[AuditLogs]') AND type in (N'U'))
+            IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[WorkflowAudit].[AuditLogs]') AND type in (N'U'))
             BEGIN
-                CREATE TABLE [audit].[AuditLogs] (
+                CREATE TABLE [WorkflowAudit].[AuditLogs] (
                     [Id] UNIQUEIDENTIFIER NOT NULL CONSTRAINT [PK_AuditLogs] PRIMARY KEY DEFAULT NEWSEQUENTIALID(),
                     [ProjectId] NVARCHAR(100) NOT NULL,
                     [EntityType] NVARCHAR(100) NOT NULL,
@@ -31,20 +31,20 @@ public static class AuditDbInitializer
                 );
 
                 CREATE NONCLUSTERED INDEX [IX_AuditLogs_EntityType_EntityId] 
-                    ON [audit].[AuditLogs] ([EntityType], [EntityId]);
+                    ON [WorkflowAudit].[AuditLogs] ([EntityType], [EntityId]);
 
                 CREATE NONCLUSTERED INDEX [IX_AuditLogs_TimestampUtc] 
-                    ON [audit].[AuditLogs] ([TimestampUtc] DESC);
+                    ON [WorkflowAudit].[AuditLogs] ([TimestampUtc] DESC);
             END;
 
             -- 3. Ensure ApprovalWorkflows Table Exists
-            IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[audit].[ApprovalWorkflows]') AND type in (N'U'))
+            IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[WorkflowAudit].[ApprovalWorkflows]') AND type in (N'U'))
             BEGIN
-                CREATE TABLE [audit].[ApprovalWorkflows] (
+                CREATE TABLE [WorkflowAudit].[ApprovalWorkflows] (
                     [Id] UNIQUEIDENTIFIER NOT NULL CONSTRAINT [PK_ApprovalWorkflows] PRIMARY KEY DEFAULT NEWSEQUENTIALID(),
                     [EntityType] NVARCHAR(100) NOT NULL,
                     [EntityId] BIGINT NOT NULL,
-                    [Status] INT NOT NULL CONSTRAINT [DF_ApprovalWorkflows_Status] DEFAULT 0, -- Fixed string 'Draft' to int 0
+                    [Status] INT NOT NULL CONSTRAINT [DF_ApprovalWorkflows_Status] DEFAULT 0,
                     [RequestedByUserId] UNIQUEIDENTIFIER NOT NULL,
                     [ReviewedByUserId] UNIQUEIDENTIFIER NULL,
                     [ReviewerComments] NVARCHAR(1000) NULL,
@@ -53,7 +53,7 @@ public static class AuditDbInitializer
                 );
 
                 CREATE UNIQUE NONCLUSTERED INDEX [IX_ApprovalWorkflows_EntityType_EntityId] 
-                    ON [audit].[ApprovalWorkflows] ([EntityType], [EntityId]);
+                    ON [WorkflowAudit].[ApprovalWorkflows] ([EntityType], [EntityId]);
             END;
             """;
 

@@ -16,14 +16,14 @@ public class AuditDbContext : DbContext
 
         modelBuilder.Entity<AuditLog>(b =>
         {
-            b.ToTable("AuditLogs", "audit");
+            b.ToTable("AuditLogs", "WorkflowAudit");
             b.HasKey(x => x.Id);
             b.Property(x => x.TimestampUtc).HasDefaultValueSql("SYSUTCDATETIME()");
         });
 
         modelBuilder.Entity<ApprovalWorkflow>(b =>
         {
-            b.ToTable("ApprovalWorkflows", "audit");
+            b.ToTable("ApprovalWorkflows", "WorkflowAudit");
             b.HasKey(x => x.Id);
             b.HasIndex(x => new { x.EntityType, x.EntityId }).IsUnique();
             b.Property(x => x.CreatedAtUtc).HasDefaultValueSql("SYSUTCDATETIME()");
