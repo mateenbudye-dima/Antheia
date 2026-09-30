@@ -1,8 +1,10 @@
-﻿using System;
+﻿using Dima.ChangeAudit.Attributes;
+using System;
 using System.Collections.Generic;
 
 namespace Antheia.Domain.Entities;
 
+[Auditable]
 public partial class PreparationMethod
 {
     public int PreparationId { get; set; }
@@ -23,8 +25,10 @@ public partial class PreparationMethod
 
     public DateTime CreatedDate { get; set; }
 
+    [IgnoreAudit]
     public Guid UpdatedBy { get; set; }
 
+    [IgnoreAudit]
     public DateTime UpdatedDate { get; set; }
 
     public virtual SectionRecord Section { get; set; } = null!;

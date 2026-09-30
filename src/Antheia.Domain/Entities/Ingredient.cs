@@ -1,9 +1,11 @@
 ﻿using Antheia.Domain.Enums;
+using Dima.ChangeAudit.Attributes;
 using System;
 using System.Collections.Generic;
 
 namespace Antheia.Domain.Entities;
 
+[Auditable]
 public partial class Ingredient
 {
     public int SectionIngredientId { get; set; }
@@ -24,8 +26,10 @@ public partial class Ingredient
 
     public DateTime CreatedDate { get; set; }
 
+    [IgnoreAudit]
     public Guid UpdatedBy { get; set; }
 
+    [IgnoreAudit]
     public DateTime UpdatedDate { get; set; }
 
     public virtual SectionRecord Section { get; set; } = null!;

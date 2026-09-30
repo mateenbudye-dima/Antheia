@@ -1,9 +1,11 @@
 ﻿using Antheia.Domain.Enums;
+using Dima.ChangeAudit.Attributes;
 using System;
 using System.Collections.Generic;
 
 namespace Antheia.Domain.Entities;
 
+[Auditable]
 public partial class SectionRecord
 {
     public int SectionId { get; set; }
@@ -24,8 +26,10 @@ public partial class SectionRecord
 
     public DateTime CreatedDate { get; set; }
 
+    [IgnoreAudit]
     public Guid UpdatedBy { get; set; }
 
+    [IgnoreAudit]
     public DateTime UpdatedDate { get; set; }
 
     public virtual ICollection<Evaluation> Evaluations { get; set; } = new List<Evaluation>();

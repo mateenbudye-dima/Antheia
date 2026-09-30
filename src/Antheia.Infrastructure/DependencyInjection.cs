@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Dima.WorkFlowAuditMiddleware.Extensions;
+using Dima.ChangeAudit.Extensions;
 
 public static class DependencyInjection
 {
@@ -26,10 +27,11 @@ public static class DependencyInjection
             options.UseSqlServer(legacyConnectionString));
 
         // Add Antheia Application DbContext
-        services.AddDbContext<AntheiaDbContext>(options =>
-            options.UseSqlServer(connectionString));
+        services.AddDbContext<AntheiaDbContext>((serviceProvider, options) =>
+            options.UseSqlServer(connectionString).UseChangeAudit(serviceProvider));
 
         services.AddWorkflowAuditing(connectionString);
+        services.AddAuditLogging(connectionString);
 
         services.AddHttpContextAccessor();
 

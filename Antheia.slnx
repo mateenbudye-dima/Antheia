@@ -6,4 +6,5 @@
     <Project Path="src/Antheia.Infrastructure/Antheia.Infrastructure.csproj" />
     <Project Path="WorkFlowAuditMiddleware/WorkFlowAuditMiddleware.csproj" Id="4e370859-de95-454c-83f6-03e2a5ca0025" />
   </Folder>
+  <Project Path="src/ChangeAudit/ChangeAudit.csproj" Id="7b456d5e-9789-4453-9d62-0e0c0e70292a" />
 </Solution>

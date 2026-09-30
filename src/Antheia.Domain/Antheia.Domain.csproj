@@ -11,4 +11,8 @@
     <Folder Include="ValueObjects\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\ChangeAudit\ChangeAudit.csproj" />
+  </ItemGroup>
+
 </Project>

@@ -14,7 +14,8 @@ export const Dashboard: React.FC = () => {
         <Typography variant="body1" color="text.secondary">
           Welcome back, {user?.username}. You have access under the role(s):{' '}
           <strong>{user?.roles?.join(', ')}</strong>.
-          <p>Privileges: {user?.privileges?.join(', ')}</p>
+          <br></br>
+          Privileges: {user?.privileges?.join(', ')}
         </Typography>
       </Paper>
     </Container>

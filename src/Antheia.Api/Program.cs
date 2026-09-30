@@ -5,7 +5,9 @@ using Asp.Versioning;
 using Asp.Versioning.ApiExplorer;
 using Dima.WorkFlowAuditMiddleware.Data;
 using Dima.WorkFlowAuditMiddleware.Extensions;
+using Dima.ChangeAudit.Extensions;
 using Serilog;
+using WorkFlowAuditMiddleware.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -79,11 +81,8 @@ try
 {
     Log.Information("Starting web host");
 
-    using (var scope = app.Services.CreateScope())
-    {
-        var dbContext = scope.ServiceProvider.GetRequiredService<AuditDbContext>();
-        await AuditDbInitializer.InitializeAsync(dbContext);
-    }
+    await app.UseWorkflowAuditDatabaseInitializationAsync();
+    await app.UseChangeAuditDatabaseInitializationAsync();
 
     await app.RunAsync();
 }

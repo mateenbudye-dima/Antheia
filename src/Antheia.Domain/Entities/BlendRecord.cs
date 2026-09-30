@@ -1,9 +1,9 @@
 ﻿using Antheia.Domain.Enums;
-using System;
-using System.Collections.Generic;
+using Dima.ChangeAudit.Attributes;
 
 namespace Antheia.Domain.Entities;
 
+[Auditable]
 public partial class BlendRecord
 {
     public int BlendId { get; set; }
@@ -26,8 +26,10 @@ public partial class BlendRecord
 
     public DateTime CreatedDate { get; set; }
 
+    [IgnoreAudit]
     public Guid UpdatedBy { get; set; }
 
+    [IgnoreAudit]
     public DateTime UpdatedDate { get; set; }
 
     public BlendStatus? Status { get; set; }
