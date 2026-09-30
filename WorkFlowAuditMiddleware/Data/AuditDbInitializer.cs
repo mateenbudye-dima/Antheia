@@ -4,14 +4,16 @@ namespace Dima.WorkFlowAuditMiddleware.Data;
 
 public static class AuditDbInitializer
 {
-    public static async Task InitializeAsync(AuditDbContext dbContext)
+    public static async Task InitializeAsync(AuditDbContext dbContext, CancellationToken cancellationToken = default)
     {
         const string sqlScript = """
+            -- 1. Ensure Schema Exists
             IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = N'audit')
             BEGIN
                 EXEC('CREATE SCHEMA [audit] AUTHORIZATION [dbo]');
             END;
 
+            -- 2. Ensure AuditLogs Table Exists
             IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[audit].[AuditLogs]') AND type in (N'U'))
             BEGIN
                 CREATE TABLE [audit].[AuditLogs] (
@@ -27,27 +29,34 @@ public static class AuditDbInitializer
                     [IpAddress] NVARCHAR(45) NULL,
                     [TimestampUtc] DATETIME2(7) NOT NULL CONSTRAINT [DF_AuditLogs_TimestampUtc] DEFAULT SYSUTCDATETIME()
                 );
-                CREATE NONCLUSTERED INDEX [IX_AuditLogs_EntityType_EntityId] ON [audit].[AuditLogs] ([EntityType], [EntityId]);
-                CREATE NONCLUSTERED INDEX [IX_AuditLogs_TimestampUtc] ON [audit].[AuditLogs] ([TimestampUtc] DESC);
+
+                CREATE NONCLUSTERED INDEX [IX_AuditLogs_EntityType_EntityId] 
+                    ON [audit].[AuditLogs] ([EntityType], [EntityId]);
+
+                CREATE NONCLUSTERED INDEX [IX_AuditLogs_TimestampUtc] 
+                    ON [audit].[AuditLogs] ([TimestampUtc] DESC);
             END;
 
+            -- 3. Ensure ApprovalWorkflows Table Exists
             IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[audit].[ApprovalWorkflows]') AND type in (N'U'))
             BEGIN
                 CREATE TABLE [audit].[ApprovalWorkflows] (
                     [Id] UNIQUEIDENTIFIER NOT NULL CONSTRAINT [PK_ApprovalWorkflows] PRIMARY KEY DEFAULT NEWSEQUENTIALID(),
                     [EntityType] NVARCHAR(100) NOT NULL,
                     [EntityId] BIGINT NOT NULL,
-                    [Status] INT NOT NULL CONSTRAINT [DF_ApprovalWorkflows_Status] DEFAULT 'Draft',
+                    [Status] INT NOT NULL CONSTRAINT [DF_ApprovalWorkflows_Status] DEFAULT 0, -- Fixed string 'Draft' to int 0
                     [RequestedByUserId] UNIQUEIDENTIFIER NOT NULL,
                     [ReviewedByUserId] UNIQUEIDENTIFIER NULL,
                     [ReviewerComments] NVARCHAR(1000) NULL,
                     [CreatedAtUtc] DATETIME2(7) NOT NULL CONSTRAINT [DF_ApprovalWorkflows_CreatedAtUtc] DEFAULT SYSUTCDATETIME(),
                     [ReviewedAtUtc] DATETIME2(7) NULL
                 );
-                CREATE UNIQUE NONCLUSTERED INDEX [IX_ApprovalWorkflows_EntityType_EntityId] ON [audit].[ApprovalWorkflows] ([EntityType], [EntityId]);
+
+                CREATE UNIQUE NONCLUSTERED INDEX [IX_ApprovalWorkflows_EntityType_EntityId] 
+                    ON [audit].[ApprovalWorkflows] ([EntityType], [EntityId]);
             END;
             """;
 
-        await dbContext.Database.ExecuteSqlRawAsync(sqlScript);
+        await dbContext.Database.ExecuteSqlRawAsync(sqlScript, cancellationToken);
     }
 }
