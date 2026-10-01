@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace ChangeAudit.Models
+namespace Dima.ChangeAudit.Models.Resolvers
 {
     public sealed class AuditEntityReference
     {

@@ -1,6 +1,6 @@
 ﻿using Antheia.Domain.Entities;
-using ChangeAudit.Abstractions;
-using ChangeAudit.Models;
+using Dima.ChangeAudit.Abstractions;
+using Dima.ChangeAudit.Models.Resolvers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 

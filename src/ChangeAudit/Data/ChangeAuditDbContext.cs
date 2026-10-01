@@ -1,4 +1,4 @@
-﻿using Dima.ChangeAudit.Models;
+﻿using Dima.ChangeAudit.Models.Domain;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dima.ChangeAudit.Data;

@@ -6,7 +6,7 @@ using Antheia.Infrastructure.Repositories;
 using Antheia.Infrastructure.Resolvers;
 using Antheia.Infrastructure.Security;
 using Antheia.Infrastructure.Services;
-using ChangeAudit.Abstractions;
+using Dima.ChangeAudit.Abstractions;
 using Dima.ChangeAudit.Extensions;
 using Dima.WorkFlowAuditMiddleware.Extensions;
 using Microsoft.EntityFrameworkCore;

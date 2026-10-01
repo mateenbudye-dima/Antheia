@@ -1,11 +1,11 @@
 ﻿using Antheia.Domain.Entities;
-using ChangeAudit.Abstractions;
-using ChangeAudit.Models;
+using Dima.ChangeAudit.Abstractions;
 using Microsoft.EntityFrameworkCore;
 using Antheia.Domain.Enums;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using Dima.ChangeAudit.Models.Resolvers;
 
 namespace Antheia.Infrastructure.Resolvers
 {

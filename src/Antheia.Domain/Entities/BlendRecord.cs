@@ -3,7 +3,7 @@ using Dima.ChangeAudit.Attributes;
 
 namespace Antheia.Domain.Entities;
 
-[Auditable]
+[Auditable("Blend")]
 public partial class BlendRecord
 {
     public int BlendId { get; set; }

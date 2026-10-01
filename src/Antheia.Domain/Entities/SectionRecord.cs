@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 namespace Antheia.Domain.Entities;
 
-[Auditable]
+[Auditable("Section")]
 public partial class SectionRecord
 {
     public int SectionId { get; set; }

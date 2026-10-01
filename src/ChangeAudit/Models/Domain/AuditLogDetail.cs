@@ -1,4 +1,4 @@
-﻿namespace Dima.ChangeAudit.Models;
+﻿namespace Dima.ChangeAudit.Models.Domain;
 
 public class AuditLogDetail
 {

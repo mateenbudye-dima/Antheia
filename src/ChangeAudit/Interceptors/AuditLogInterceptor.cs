@@ -1,8 +1,7 @@
-﻿using ChangeAudit.Abstractions;
-using Dima.ChangeAudit.Abstractions;
+﻿using Dima.ChangeAudit.Abstractions;
+using Dima.ChangeAudit.Models.Domain;
 using Dima.ChangeAudit.Attributes;
 using Dima.ChangeAudit.Data;
-using Dima.ChangeAudit.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -20,7 +19,6 @@ public class AuditLogInterceptor(
     IUserContext userContext,
     IAuditHierarchyResolver hierarchyResolver) : SaveChangesInterceptor
 {
-    // Caching attribute reflection for high-performance execution
     private static readonly ConcurrentDictionary<
         Type,
         (bool IsAuditable, string EntityName)> EntityTypeCache = new();
@@ -38,15 +36,9 @@ public class AuditLogInterceptor(
             "UpdatedDate"
         };
 
-    /*
-     * Holds audit information captured before SaveChanges.
-     *
-     * We cannot save the audit records yet because Added entities may
-     * still have EF temporary identity values.
-     */
     private readonly ConcurrentDictionary<
         DbContext,
-        List<PendingAuditEntry>> pendingAudits = new();
+        List<PendingAuditEntry>> _pendingAudits = new();
 
     public override async ValueTask<InterceptionResult<int>> SavingChangesAsync(
         DbContextEventData eventData,
@@ -59,24 +51,21 @@ public class AuditLogInterceptor(
                 result,
                 cancellationToken);
 
-        var mainContext = eventData.Context;
+        var context = eventData.Context;
 
-        // Don't audit the audit database itself.
-        if (mainContext is ChangeAuditDbContext)
-        {
+        if (context is ChangeAuditDbContext)
             return await base.SavingChangesAsync(
                 eventData,
                 result,
                 cancellationToken);
-        }
 
         var auditEntries = await BuildAuditEntriesAsync(
-            mainContext,
+            context,
             cancellationToken);
 
         if (auditEntries.Count > 0)
         {
-            pendingAudits[mainContext] = auditEntries;
+            _pendingAudits[context] = auditEntries;
         }
 
         return await base.SavingChangesAsync(
@@ -98,9 +87,9 @@ public class AuditLogInterceptor(
                 cancellationToken);
         }
 
-        var mainContext = eventData.Context;
+        var context = eventData.Context;
 
-        if (mainContext is ChangeAuditDbContext)
+        if (context is ChangeAuditDbContext)
         {
             return await base.SavedChangesAsync(
                 eventData,
@@ -108,8 +97,8 @@ public class AuditLogInterceptor(
                 cancellationToken);
         }
 
-        if (!pendingAudits.TryRemove(
-                mainContext,
+        if (!_pendingAudits.TryRemove(
+                context,
                 out var auditEntries))
         {
             return await base.SavedChangesAsync(
@@ -119,17 +108,28 @@ public class AuditLogInterceptor(
         }
 
         /*
-         * At this point SQL Server has generated identity values and
-         * EF Core has populated them back onto the Added entities.
+         * SQL Server has now generated identity values.
          */
         foreach (var pendingAudit in auditEntries)
         {
-            pendingAudit.AuditLog.EntityId =
-                ResolvePrimaryKeyValue(pendingAudit.Entry);
+            var audit = pendingAudit.AuditLog;
+
+            // Resolve the real generated EntityId.
+            audit.EntityId = ResolvePrimaryKeyValue(
+                pendingAudit.Entry);
+
+            /*
+             * If the changed entity itself is the root,
+             * its RootEntityId must also use the real generated ID.
+             */
+            if (pendingAudit.IsSelfRoot)
+            {
+                audit.RootEntityId = audit.EntityId;
+            }
         }
 
         await SaveAuditEntriesAsync(
-            mainContext,
+            context,
             auditEntries,
             cancellationToken);
 
@@ -145,52 +145,13 @@ public class AuditLogInterceptor(
     {
         if (eventData.Context != null)
         {
-            // Main SaveChanges failed, so don't retain pending audit entries.
-            pendingAudits.TryRemove(
+            _pendingAudits.TryRemove(
                 eventData.Context,
                 out _);
         }
 
         return base.SaveChangesFailedAsync(
             eventData,
-            cancellationToken);
-    }
-
-    private async Task SaveAuditEntriesAsync(
-        DbContext mainContext,
-        List<PendingAuditEntry> auditEntries,
-        CancellationToken cancellationToken)
-    {
-        using var scope = serviceProvider.CreateScope();
-
-        var auditContext =
-            scope.ServiceProvider.GetRequiredService<ChangeAuditDbContext>();
-
-        /*
-         * Use the same database connection as the main context.
-         */
-        var dbConnection = mainContext.Database.GetDbConnection();
-
-        auditContext.Database.SetDbConnection(dbConnection);
-
-        /*
-         * If the caller supplied an explicit transaction and it is
-         * still active, use that transaction.
-         */
-        var currentTransaction =
-            mainContext.Database.CurrentTransaction;
-
-        if (currentTransaction != null)
-        {
-            await auditContext.Database.UseTransactionAsync(
-                currentTransaction.GetDbTransaction(),
-                cancellationToken);
-        }
-
-        auditContext.AuditChangeLogs.AddRange(
-            auditEntries.Select(x => x.AuditLog));
-
-        await auditContext.SaveChangesAsync(
             cancellationToken);
     }
 
@@ -212,13 +173,9 @@ public class AuditLogInterceptor(
 
         foreach (var entry in entries)
         {
-            /*
-             * Use EF metadata CLR type instead of entry.Entity.GetType()
-             * so proxy types don't break attribute lookup.
-             */
             var entityType = entry.Metadata.ClrType;
 
-            var (isAuditable, entityName) =
+            var (isAuditable, auditEntityName) =
                 EntityTypeCache.GetOrAdd(
                     entityType,
                     ResolveAuditMetadata);
@@ -226,35 +183,49 @@ public class AuditLogInterceptor(
             if (!isAuditable)
                 continue;
 
-            /*
-             * IMPORTANT:
-             *
-             * For Added entities this may be a temporary EF value such as:
-             *
-             * -2147482647
-             *
-             * We intentionally do NOT treat this as the final ID.
-             * SavedChangesAsync() resolves the real identity later.
-             */
-            var entityId = ResolvePrimaryKeyValue(entry);
-
             var hierarchy =
                 await hierarchyResolver.ResolveAsync(
                     entry,
                     context,
                     cancellationToken);
 
+            /*
+             * If hierarchy has a Root, use it.
+             *
+             * Otherwise the changed entity itself is the root.
+             */
+            var isSelfRoot = hierarchy?.Root == null;
+
+            var rootEntityType =
+                hierarchy?.Root?.EntityType
+                ?? auditEntityName;
+
+            var rootEntityId =
+                hierarchy?.Root?.EntityId
+                ?? ResolvePrimaryKeyValue(entry);
+
             var changeLog = new AuditChangeLog
             {
                 Id = Guid.NewGuid(),
 
-                EntityType = entityName,
+                EntityType = auditEntityName,
 
                 /*
-                 * This is only a temporary value for Added entities.
-                 * It will be replaced in SavedChangesAsync().
+                 * May temporarily contain an EF negative identity.
+                 * It is corrected in SavedChangesAsync().
                  */
-                EntityId = entityId,
+                EntityId = ResolvePrimaryKeyValue(entry),
+
+                RootEntityType = rootEntityType,
+
+                /*
+                 * For a child entity this is already the real
+                 * parent/root ID.
+                 *
+                 * For a newly-created root entity this may be
+                 * temporary and is corrected after SaveChanges.
+                 */
+                RootEntityId = rootEntityId,
 
                 Action = entry.State.ToString(),
 
@@ -269,10 +240,8 @@ public class AuditLogInterceptor(
 
             foreach (var property in entry.Properties)
             {
-                if (property.Metadata.IsPrimaryKey())
-                    continue;
-
-                if (AutoIgnoredProperties.Contains(
+                if (property.Metadata.IsPrimaryKey() ||
+                    AutoIgnoredProperties.Contains(
                         property.Metadata.Name))
                 {
                     continue;
@@ -286,20 +255,15 @@ public class AuditLogInterceptor(
 
                 var propInfo = property.Metadata.PropertyInfo;
 
-                if (propInfo != null)
+                if (propInfo != null &&
+                    PropertyIgnoreCache.GetOrAdd(
+                        propInfo,
+                        p =>
+                            p.GetCustomAttribute<IgnoreAuditAttribute>(
+                                inherit: true) != null))
                 {
-                    var isIgnored =
-                        PropertyIgnoreCache.GetOrAdd(
-                            propInfo,
-                            p =>
-                                p.GetCustomAttribute<IgnoreAuditAttribute>(
-                                    inherit: true) != null);
-
-                    if (isIgnored)
-                        continue;
+                    continue;
                 }
-
-                var propertyName = property.Metadata.Name;
 
                 var oldValue =
                     entry.State == EntityState.Added
@@ -311,6 +275,12 @@ public class AuditLogInterceptor(
                         ? null
                         : property.CurrentValue;
 
+                if (entry.State == EntityState.Added)
+                {
+                    //skip logging all properties for added entities
+                    continue;
+                }
+
                 changeLog.Details.Add(
                     new AuditLogDetail
                     {
@@ -318,7 +288,7 @@ public class AuditLogInterceptor(
 
                         AuditChangeLogId = changeLog.Id,
 
-                        PropertyName = propertyName,
+                        PropertyName = property.Metadata.Name,
 
                         OldValue = FormatPropertyValue(oldValue),
 
@@ -326,14 +296,16 @@ public class AuditLogInterceptor(
                     });
             }
 
-            if (changeLog.Details.Count > 0 ||
+            if (entry.State == EntityState.Added ||
+                changeLog.Details.Count > 0 ||
                 entry.State == EntityState.Deleted)
             {
                 auditEntries.Add(
                     new PendingAuditEntry
                     {
                         Entry = entry,
-                        AuditLog = changeLog
+                        AuditLog = changeLog,
+                        IsSelfRoot = isSelfRoot
                     });
             }
         }
@@ -341,10 +313,42 @@ public class AuditLogInterceptor(
         return auditEntries;
     }
 
+    private async Task SaveAuditEntriesAsync(
+        DbContext mainContext,
+        List<PendingAuditEntry> auditEntries,
+        CancellationToken cancellationToken)
+    {
+        using var scope = serviceProvider.CreateScope();
+
+        var auditContext =
+            scope.ServiceProvider
+                .GetRequiredService<ChangeAuditDbContext>();
+
+        var connection =
+            mainContext.Database.GetDbConnection();
+
+        auditContext.Database.SetDbConnection(connection);
+
+        var transaction =
+            mainContext.Database.CurrentTransaction;
+
+        if (transaction != null)
+        {
+            await auditContext.Database.UseTransactionAsync(
+                transaction.GetDbTransaction(),
+                cancellationToken);
+        }
+
+        auditContext.AuditChangeLogs.AddRange(
+            auditEntries.Select(x => x.AuditLog));
+
+        await auditContext.SaveChangesAsync(
+            cancellationToken);
+    }
+
     private static (bool IsAuditable, string EntityName)
         ResolveAuditMetadata(Type entityType)
     {
-        // Direct Attribute check
         var directAttr =
             entityType.GetCustomAttribute<AuditableAttribute>(
                 inherit: true);
@@ -356,8 +360,6 @@ public class AuditLogInterceptor(
                 directAttr.EntityTypeName ?? entityType.Name);
         }
 
-        // Check via [MetadataType]
-        // Supports DB-First partial classes.
         var metadataTypeAttr =
             entityType.GetCustomAttribute<MetadataTypeAttribute>(
                 inherit: true);
@@ -377,9 +379,7 @@ public class AuditLogInterceptor(
             }
         }
 
-        return (
-            false,
-            entityType.Name);
+        return (false, entityType.Name);
     }
 
     private static string ResolvePrimaryKeyValue(
@@ -413,8 +413,28 @@ public class AuditLogInterceptor(
             "A valid user ID is required for audit logging.");
     }
 
-    private static string? FormatPropertyValue(
-        object? value)
+    private static bool IsEmptyAuditValue(object? value)
+    {
+        if (value is null)
+            return true;
+
+        if (value is string text)
+            return string.IsNullOrWhiteSpace(text);
+
+        var type = value.GetType();
+
+        if (type.IsValueType)
+        {
+            var defaultValue =
+                Activator.CreateInstance(type);
+
+            return value.Equals(defaultValue);
+        }
+
+        return false;
+    }
+
+    private static string? FormatPropertyValue(object? value)
     {
         if (value is null)
             return null;
@@ -430,5 +450,7 @@ public class AuditLogInterceptor(
         public required EntityEntry Entry { get; init; }
 
         public required AuditChangeLog AuditLog { get; init; }
+
+        public bool IsSelfRoot { get; init; }
     }
 }

@@ -18,6 +18,8 @@ public static class ChangeAuditDbInitializer
                     [Id] UNIQUEIDENTIFIER NOT NULL CONSTRAINT [PK_AuditChangeLogs] PRIMARY KEY DEFAULT NEWSEQUENTIALID(),
                     [EntityType] NVARCHAR(100) NOT NULL,
                     [EntityId] NVARCHAR(100) NOT NULL,
+                    [RootEntityType] NVARCHAR(100) NOT NULL,
+                    [RootEntityId] NVARCHAR(100) NOT NULL,
                     [Action] NVARCHAR(20) NOT NULL,
                     [UserId] UNIQUEIDENTIFIER NOT NULL,
                     [HierarchyJson] nvarchar(max) NULL,

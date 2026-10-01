@@ -1,8 +1,9 @@
 ﻿using Dima.ChangeAudit.Abstractions;
+using Dima.ChangeAudit.Data;
 using Dima.ChangeAudit.Interceptors;
+using Dima.ChangeAudit.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Dima.ChangeAudit.Data;
 
 namespace Dima.ChangeAudit.Extensions;
 
@@ -17,6 +18,8 @@ public static class ChangeAuditServiceExtensions
 
         services.AddScoped<IUserContext, HttpUserContext>();
         services.AddScoped<AuditLogInterceptor>();
+
+        services.AddScoped<IAuditLogService, AuditLogService>();
         return services;
     }
 }

@@ -1,10 +1,7 @@
-﻿using ChangeAudit.Models;
+﻿using Dima.ChangeAudit.Models.Resolvers;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
-namespace ChangeAudit.Abstractions
+namespace Dima.ChangeAudit.Abstractions
 {
     public interface IAuditContainerResolver
     {

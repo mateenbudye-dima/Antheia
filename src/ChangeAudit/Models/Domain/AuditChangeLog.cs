@@ -1,4 +1,4 @@
-﻿namespace Dima.ChangeAudit.Models;
+﻿namespace Dima.ChangeAudit.Models.Domain;
 
 public class AuditChangeLog
 {
@@ -7,6 +7,10 @@ public class AuditChangeLog
     public string EntityType { get; set; } = null!;
 
     public string EntityId { get; set; } = null!;
+
+    public string RootEntityType { get; set; } = string.Empty;
+
+    public string RootEntityId { get; set; } = string.Empty;
 
     public string Action { get; set; } = null!;
 

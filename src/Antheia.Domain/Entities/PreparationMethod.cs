@@ -25,10 +25,8 @@ public partial class PreparationMethod
 
     public DateTime CreatedDate { get; set; }
 
-    [IgnoreAudit]
     public Guid UpdatedBy { get; set; }
 
-    [IgnoreAudit]
     public DateTime UpdatedDate { get; set; }
 
     public virtual SectionRecord Section { get; set; } = null!;

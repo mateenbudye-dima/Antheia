@@ -12,7 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\ChangeAudit\ChangeAudit.csproj" />
+    <ProjectReference Include="..\ChangeAudit\Dima.ChangeAudit.csproj" />
   </ItemGroup>
 
 </Project>

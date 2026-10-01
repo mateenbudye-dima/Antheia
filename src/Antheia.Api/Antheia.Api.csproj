@@ -25,7 +25,7 @@
     <ProjectReference Include="..\..\WorkFlowAuditMiddleware\WorkFlowAuditMiddleware.csproj" />
     <ProjectReference Include="..\Antheia.Application\Antheia.Application.csproj" />
     <ProjectReference Include="..\Antheia.Infrastructure\Antheia.Infrastructure.csproj" />
-    <ProjectReference Include="..\ChangeAudit\ChangeAudit.csproj" />
+    <ProjectReference Include="..\ChangeAudit\Dima.ChangeAudit.csproj" />
   </ItemGroup>
 
 </Project>
