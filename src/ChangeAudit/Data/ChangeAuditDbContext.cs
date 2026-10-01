@@ -52,6 +52,8 @@ public class ChangeAuditDbContext(DbContextOptions<ChangeAuditDbContext> options
             entity.Property(e => e.TimestampUtc)
                 .HasPrecision(7)
                 .HasDefaultValueSql("SYSUTCDATETIME()");
+            entity.Property(x => x.HierarchyJson)
+            .HasColumnType("nvarchar(max)");
 
             // Non-Clustered Indexes
             entity.HasIndex(e => new { e.EntityType, e.EntityId }, "IX_AuditChangeLogs_EntityType_EntityId");

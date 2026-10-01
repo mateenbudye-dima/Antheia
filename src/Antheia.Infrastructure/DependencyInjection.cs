@@ -3,13 +3,15 @@
 using Antheia.Application.Interfaces;
 using Antheia.Infrastructure.Data;
 using Antheia.Infrastructure.Repositories;
+using Antheia.Infrastructure.Resolvers;
 using Antheia.Infrastructure.Security;
 using Antheia.Infrastructure.Services;
+using ChangeAudit.Abstractions;
+using Dima.ChangeAudit.Extensions;
+using Dima.WorkFlowAuditMiddleware.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Dima.WorkFlowAuditMiddleware.Extensions;
-using Dima.ChangeAudit.Extensions;
 
 public static class DependencyInjection
 {
@@ -22,16 +24,21 @@ public static class DependencyInjection
         var connectionString = configuration.GetConnectionString("AntheiaConnection")
             ?? throw new InvalidOperationException("Connection string 'AntheiaConnection' not found.");
 
-        // 1. Database Context
+        // Database Context
         services.AddDbContext<LegacyMembershipDbContext>(options =>
             options.UseSqlServer(legacyConnectionString));
 
         // Add Antheia Application DbContext
         services.AddDbContext<AntheiaDbContext>((serviceProvider, options) =>
-            options.UseSqlServer(connectionString).UseChangeAudit(serviceProvider));
+            options.UseSqlServer(connectionString).UseChangeAudit(serviceProvider));       
 
-        services.AddWorkflowAuditing(connectionString);
+        // Add Change Audit Middleware
         services.AddAuditLogging(connectionString);
+        services.AddScoped<IAuditHierarchyResolver, ApplicationAuditHierarchyResolver>();
+        services.AddScoped<IAuditContainerResolver, AuditContainerResolver>();
+
+        // Add Workflow Audit Middleware
+        services.AddWorkflowAuditing(connectionString);
 
         services.AddHttpContextAccessor();
 
@@ -45,6 +52,7 @@ public static class DependencyInjection
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IBlendService, BlendService>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
+        
 
         return services;
     }

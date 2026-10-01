@@ -20,6 +20,7 @@ public static class ChangeAuditDbInitializer
                     [EntityId] NVARCHAR(100) NOT NULL,
                     [Action] NVARCHAR(20) NOT NULL,
                     [UserId] UNIQUEIDENTIFIER NOT NULL,
+                    [HierarchyJson] nvarchar(max) NULL,
                     [TimestampUtc] DATETIME2(7) NOT NULL CONSTRAINT [DF_AuditChangeLogs_TimestampUtc] DEFAULT SYSUTCDATETIME()
                 );
 
