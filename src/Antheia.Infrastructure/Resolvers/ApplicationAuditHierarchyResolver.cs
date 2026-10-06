@@ -127,16 +127,19 @@ public sealed class ApplicationAuditHierarchyResolver : IAuditHierarchyResolver
     }
     private static string? GetEntityDisplayName(EntityEntry entry)
     {
-        // List candidate property names you want to check for display purposes
-        string[] candidateProperties = ["Name", "Title", "Description", "DisplayName"];
+        // Suffixes to check against property names
+        string[] candidateSuffixes = ["Name", "Title", "Description"];
 
-        foreach (var propName in candidateProperties)
+        foreach (var suffix in candidateSuffixes)
         {
-            // FindProperty returns null if the property does not exist on the EF metadata
-            if (entry.Metadata.FindProperty(propName) != null)
+            // Find the first property whose name ends with the suffix
+            var property = entry.Metadata.GetProperties()
+                .FirstOrDefault(p => p.Name.EndsWith(suffix, StringComparison.OrdinalIgnoreCase));
+
+            if (property != null)
             {
-                var value = entry.Property(propName).CurrentValue
-                         ?? entry.Property(propName).OriginalValue;
+                var value = entry.Property(property.Name).CurrentValue
+                         ?? entry.Property(property.Name).OriginalValue;
 
                 if (value != null && !string.IsNullOrWhiteSpace(value.ToString()))
                 {
