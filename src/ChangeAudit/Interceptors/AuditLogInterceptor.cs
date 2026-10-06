@@ -23,13 +23,10 @@ public class AuditLogInterceptor(
         Type,
         (bool IsAuditable, string EntityName)> EntityTypeCache = new();
 
+    // Combined metadata cache to replace separate PropertyIgnoreCache & LogOnAddedCache
     private static readonly ConcurrentDictionary<
         PropertyInfo,
-        bool> PropertyIgnoreCache = new();
-
-    private static readonly ConcurrentDictionary<
-        PropertyInfo,
-        bool> LogOnAddedCache = new();
+        (bool IsIgnored, bool LogOnAdded)> PropertyMetadataCache = new();
 
     private static readonly HashSet<string> AutoIgnoredProperties =
         new(StringComparer.OrdinalIgnoreCase)
@@ -49,33 +46,21 @@ public class AuditLogInterceptor(
         InterceptionResult<int> result,
         CancellationToken cancellationToken = default)
     {
-        if (eventData.Context is null)
-            return await base.SavingChangesAsync(
-                eventData,
-                result,
-                cancellationToken);
+        if (eventData.Context is null || eventData.Context is ChangeAuditDbContext)
+        {
+            return await base.SavingChangesAsync(eventData, result, cancellationToken);
+        }
 
         var context = eventData.Context;
 
-        if (context is ChangeAuditDbContext)
-            return await base.SavingChangesAsync(
-                eventData,
-                result,
-                cancellationToken);
-
-        var auditEntries = await BuildAuditEntriesAsync(
-            context,
-            cancellationToken);
+        var auditEntries = await BuildAuditEntriesAsync(context, cancellationToken);
 
         if (auditEntries.Count > 0)
         {
             _pendingAudits[context] = auditEntries;
         }
 
-        return await base.SavingChangesAsync(
-            eventData,
-            result,
-            cancellationToken);
+        return await base.SavingChangesAsync(eventData, result, cancellationToken);
     }
 
     public override async ValueTask<int> SavedChangesAsync(
@@ -83,76 +68,55 @@ public class AuditLogInterceptor(
         int result,
         CancellationToken cancellationToken = default)
     {
-        if (eventData.Context is null)
+        if (eventData.Context is null || eventData.Context is ChangeAuditDbContext)
         {
-            return await base.SavedChangesAsync(
-                eventData,
-                result,
-                cancellationToken);
+            return await base.SavedChangesAsync(eventData, result, cancellationToken);
         }
 
         var context = eventData.Context;
 
-        if (context is ChangeAuditDbContext)
+        try
         {
-            return await base.SavedChangesAsync(
-                eventData,
-                result,
-                cancellationToken);
-        }
-
-        if (!_pendingAudits.TryRemove(
-                context,
-                out var auditEntries))
-        {
-            return await base.SavedChangesAsync(
-                eventData,
-                result,
-                cancellationToken);
-        }
-
-        foreach (var pendingAudit in auditEntries)
-        {
-            var audit = pendingAudit.AuditLog;
-
-            audit.EntityId = ResolvePrimaryKeyValue(
-                pendingAudit.Entry);
-
-            /*
-             * If the changed entity itself is the root,
-             * its RootEntityId must also use the real generated ID.
-             */
-            if (pendingAudit.IsSelfRoot)
+            if (_pendingAudits.TryRemove(context, out var auditEntries) && auditEntries.Count > 0)
             {
-                audit.RootEntityId = audit.EntityId;
+                foreach (var pendingAudit in auditEntries)
+                {
+                    var audit = pendingAudit.AuditLog;
+
+                    audit.EntityId = ResolvePrimaryKeyValue(pendingAudit.Entry);
+
+                    /*
+                     * If the changed entity itself is the root,
+                     * its RootEntityId must also use the real generated ID.
+                     */
+                    if (pendingAudit.IsSelfRoot)
+                    {
+                        audit.RootEntityId = audit.EntityId;
+                    }
+                }
+
+                await SaveAuditEntriesAsync(context, auditEntries, cancellationToken);
             }
         }
+        finally
+        {
+            // Guaranteed cleanup to prevent DbContext dictionary memory leaks
+            _pendingAudits.TryRemove(context, out _);
+        }
 
-        await SaveAuditEntriesAsync(
-            context,
-            auditEntries,
-            cancellationToken);
-
-        return await base.SavedChangesAsync(
-            eventData,
-            result,
-            cancellationToken);
+        return await base.SavedChangesAsync(eventData, result, cancellationToken);
     }
 
     public override Task SaveChangesFailedAsync(
         DbContextErrorEventData eventData,
         CancellationToken cancellationToken = default)
     {
-        if (eventData.Context != null)
+        if (eventData.Context is not null)
         {
-            _pendingAudits.TryRemove(
-                eventData.Context,
-                out _);
+            _pendingAudits.TryRemove(eventData.Context, out _);
         }
 
-        return base.SaveChangesFailedAsync(
-            eventData,
-            cancellationToken);
+        return base.SaveChangesFailedAsync(eventData, cancellationToken);
     }
 
     private async Task<List<PendingAuditEntry>> BuildAuditEntriesAsync(
@@ -161,48 +125,43 @@ public class AuditLogInterceptor(
     {
         var auditEntries = new List<PendingAuditEntry>();
 
-        var entries = context.ChangeTracker.Entries()
-            .Where(e =>
-                e.State is EntityState.Added
-                    or EntityState.Modified
-                    or EntityState.Deleted)
-            .Where(e =>
-                e.Entity is not AuditChangeLog &&
-                e.Entity is not AuditLogDetail)
-            .ToList();
-
-        foreach (var entry in entries)
+        // Directly iterate over ChangeTracker without allocating a intermediate List via .ToList()
+        foreach (var entry in context.ChangeTracker.Entries())
         {
+            if (entry.State is not (EntityState.Added or EntityState.Modified or EntityState.Deleted))
+            {
+                continue;
+            }
+
+            if (entry.Entity is AuditChangeLog or AuditLogDetail)
+            {
+                continue;
+            }
+
             var entityType = entry.Metadata.ClrType;
 
             var (isAuditable, auditEntityName) =
-                EntityTypeCache.GetOrAdd(
-                    entityType,
-                    ResolveAuditMetadata);
+                EntityTypeCache.GetOrAdd(entityType, ResolveAuditMetadata);
 
             if (!isAuditable)
+            {
                 continue;
+            }
 
-            var hierarchy =
-                await hierarchyResolver.ResolveAsync(
-                    entry,
-                    context,
-                    cancellationToken);
+            var hierarchy = await hierarchyResolver.ResolveAsync(
+                entry,
+                context,
+                cancellationToken);
 
             var isSelfRoot = hierarchy?.Root == null;
 
-            var rootEntityType =
-                hierarchy?.Root?.EntityType
-                ?? auditEntityName;
+            var rootEntityType = hierarchy?.Root?.EntityType ?? auditEntityName;
 
-            var rootEntityId =
-                hierarchy?.Root?.EntityId
-                ?? ResolvePrimaryKeyValue(entry);
+            var rootEntityId = hierarchy?.Root?.EntityId ?? ResolvePrimaryKeyValue(entry);
 
             var changeLog = new AuditChangeLog
             {
                 Id = Guid.NewGuid(),
-
                 EntityType = auditEntityName,
 
                 /*
@@ -214,20 +173,14 @@ public class AuditLogInterceptor(
                 RootEntityType = rootEntityType,
 
                 /*
-                 * For a child entity this is already the real
-                 * parent/root ID.
-                 *
-                 * For a newly-created root entity this may be
-                 * temporary and is corrected after SaveChanges.
+                 * For a child entity this is already the real parent/root ID.
+                 * For a newly-created root entity this may be temporary and is corrected after SaveChanges.
                  */
                 RootEntityId = rootEntityId,
 
                 Action = entry.State.ToString(),
-
                 UserId = ResolveUserId(),
-
                 TimestampUtc = DateTime.UtcNow,
-
                 HierarchyJson = hierarchy == null
                     ? null
                     : JsonSerializer.Serialize(hierarchy)
@@ -248,52 +201,40 @@ public class AuditLogInterceptor(
 
                 var propInfo = property.Metadata.PropertyInfo;
 
-                // 1. Check [IgnoreAudit] attribute
-                if (propInfo != null &&
-                    PropertyIgnoreCache.GetOrAdd(
-                        propInfo,
-                        p => IsPropertyAttributePresent<IgnoreAuditAttribute>(p, entityType)))
+                if (propInfo != null)
                 {
-                    continue;
-                }
+                    var (isIgnored, logOnAdded) = GetPropertyAuditMetadata(propInfo, entityType);
 
-                // 2. Check [LogOnAdded] attribute when EntityState == Added
-                if (entry.State == EntityState.Added)
-                {
-                    var shouldLogOnAdded = propInfo != null &&
-                        LogOnAddedCache.GetOrAdd(
-                            propInfo,
-                            p => IsPropertyAttributePresent<LogOnAddedAttribute>(p, entityType));
+                    // 1. Check [IgnoreAudit]
+                    if (isIgnored)
+                    {
+                        continue;
+                    }
 
-                    // Skip logging property on insert unless explicitly decorated with [LogOnAdded]
-                    if (!shouldLogOnAdded)
+                    // 2. Check [LogOnAdded] when EntityState == Added
+                    if (entry.State == EntityState.Added && !logOnAdded)
                     {
                         continue;
                     }
                 }
 
-                var oldValue =
-                    entry.State == EntityState.Added
-                        ? null
-                        : property.OriginalValue;
+                var rawOldValue = entry.State == EntityState.Added ? null : property.OriginalValue;
+                var rawNewValue = entry.State == EntityState.Deleted ? null : property.CurrentValue;
 
-                var newValue =
-                    entry.State == EntityState.Deleted
-                        ? null
-                        : property.CurrentValue;
+                // 3. Skip logging if values are equivalent (e.g. null vs "" vs " ")
+                if (entry.State == EntityState.Modified && AreValuesEquivalent(rawOldValue, rawNewValue))
+                {
+                    continue;
+                }
 
                 changeLog.Details.Add(
                     new AuditLogDetail
                     {
                         Id = Guid.NewGuid(),
-
                         AuditChangeLogId = changeLog.Id,
-
                         PropertyName = property.Metadata.Name,
-
-                        OldValue = FormatPropertyValue(oldValue),
-
-                        NewValue = FormatPropertyValue(newValue)
+                        OldValue = FormatPropertyValue(rawOldValue),
+                        NewValue = FormatPropertyValue(rawNewValue)
                     });
             }
 
@@ -312,6 +253,16 @@ public class AuditLogInterceptor(
         }
 
         return auditEntries;
+    }
+
+    private static (bool IsIgnored, bool LogOnAdded) GetPropertyAuditMetadata(PropertyInfo propInfo, Type entityType)
+    {
+        return PropertyMetadataCache.GetOrAdd(propInfo, p =>
+        {
+            var isIgnored = IsPropertyAttributePresent<IgnoreAuditAttribute>(p, entityType);
+            var logOnAdded = IsPropertyAttributePresent<LogOnAddedAttribute>(p, entityType);
+            return (isIgnored, logOnAdded);
+        });
     }
 
     private static bool IsPropertyAttributePresent<TAttr>(PropertyInfo propInfo, Type entityType)
@@ -339,17 +290,14 @@ public class AuditLogInterceptor(
     {
         using var scope = serviceProvider.CreateScope();
 
-        var auditContext =
-            scope.ServiceProvider
-                .GetRequiredService<ChangeAuditDbContext>();
+        var auditContext = scope.ServiceProvider
+            .GetRequiredService<ChangeAuditDbContext>();
 
-        var connection =
-            mainContext.Database.GetDbConnection();
+        var connection = mainContext.Database.GetDbConnection();
 
         auditContext.Database.SetDbConnection(connection);
 
-        var transaction =
-            mainContext.Database.CurrentTransaction;
+        var transaction = mainContext.Database.CurrentTransaction;
 
         if (transaction != null)
         {
@@ -358,54 +306,39 @@ public class AuditLogInterceptor(
                 cancellationToken);
         }
 
-        auditContext.AuditChangeLogs.AddRange(
-            auditEntries.Select(x => x.AuditLog));
+        auditContext.AuditChangeLogs.AddRange(auditEntries.Select(x => x.AuditLog));
 
-        await auditContext.SaveChangesAsync(
-            cancellationToken);
+        await auditContext.SaveChangesAsync(cancellationToken);
     }
 
-    private static (bool IsAuditable, string EntityName)
-        ResolveAuditMetadata(Type entityType)
+    private static (bool IsAuditable, string EntityName) ResolveAuditMetadata(Type entityType)
     {
-        var directAttr =
-            entityType.GetCustomAttribute<AuditableAttribute>(
-                inherit: true);
+        var directAttr = entityType.GetCustomAttribute<AuditableAttribute>(inherit: true);
 
         if (directAttr != null)
         {
-            return (
-                true,
-                directAttr.EntityTypeName ?? entityType.Name);
+            return (true, directAttr.EntityTypeName ?? entityType.Name);
         }
 
-        var metadataTypeAttr =
-            entityType.GetCustomAttribute<MetadataTypeAttribute>(
-                inherit: true);
+        var metadataTypeAttr = entityType.GetCustomAttribute<MetadataTypeAttribute>(inherit: true);
 
         if (metadataTypeAttr != null)
         {
-            var metaAttr =
-                metadataTypeAttr.MetadataClassType
-                    .GetCustomAttribute<AuditableAttribute>(
-                        inherit: true);
+            var metaAttr = metadataTypeAttr.MetadataClassType
+                .GetCustomAttribute<AuditableAttribute>(inherit: true);
 
             if (metaAttr != null)
             {
-                return (
-                    true,
-                    metaAttr.EntityTypeName ?? entityType.Name);
+                return (true, metaAttr.EntityTypeName ?? entityType.Name);
             }
         }
 
         return (false, entityType.Name);
     }
 
-    private static string ResolvePrimaryKeyValue(
-        EntityEntry entry)
+    private static string ResolvePrimaryKeyValue(EntityEntry entry)
     {
-        var primaryKey =
-            entry.Metadata.FindPrimaryKey();
+        var primaryKey = entry.Metadata.FindPrimaryKey();
 
         if (primaryKey == null)
             return "0";
@@ -421,9 +354,7 @@ public class AuditLogInterceptor(
 
     private Guid ResolveUserId()
     {
-        if (Guid.TryParse(
-                userContext.UserId,
-                out var userId))
+        if (Guid.TryParse(userContext.UserId, out var userId))
         {
             return userId;
         }
@@ -441,6 +372,28 @@ public class AuditLogInterceptor(
             return str;
 
         return JsonSerializer.Serialize(value);
+    }
+
+    private static string? NormalizeValue(object? value)
+    {
+        if (value is null)
+            return null;
+
+        if (value is string str)
+        {
+            return string.IsNullOrWhiteSpace(str) ? null : str.Trim();
+        }
+
+        var formatted = FormatPropertyValue(value);
+        return string.IsNullOrWhiteSpace(formatted) ? null : formatted.Trim();
+    }
+
+    private static bool AreValuesEquivalent(object? oldValue, object? newValue)
+    {
+        var normalizedOld = NormalizeValue(oldValue);
+        var normalizedNew = NormalizeValue(newValue);
+
+        return string.Equals(normalizedOld, normalizedNew, StringComparison.Ordinal);
     }
 
     private sealed class PendingAuditEntry
