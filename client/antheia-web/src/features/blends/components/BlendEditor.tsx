@@ -13,10 +13,11 @@ import {
   Tooltip,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import FastfoodIcon from '@mui/icons-material/Fastfood';
-import BuildIcon from '@mui/icons-material/Build';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlined';
-import AssessmentIcon from '@mui/icons-material/Assessment';
+import ScienceIcon from '@mui/icons-material/Science'; // Ingredient
+import BlenderIcon from '@mui/icons-material/Blender'; // Preparation Method
+import FactCheckIcon from '@mui/icons-material/FactCheck'; // Evaluation Params
+
 
 import { HeaderSection } from './HeaderSection';
 import { IngredientsSection } from './IngredientsSection';
@@ -33,6 +34,31 @@ export interface BlendEditorProps {
   viewMode: 'split' | 'all';
   onSectionDeleted?: () => void;
 }
+interface MenuOption {
+  type: SectionType;
+  label: string;
+  icon: React.ReactNode;
+  hasDividerAfter?: boolean;
+}
+
+const SECTION_OPTIONS: MenuOption[] = [
+  {
+    type: SectionType.Ingredients,
+    label: 'Ingredients Section',
+    icon: <ScienceIcon fontSize="small" />,
+  },
+  {
+    type: SectionType.PreparationMethod,
+    label: 'Preparation Method',
+    icon: <BlenderIcon fontSize="small" />,
+    hasDividerAfter: true, // Renders the divider after this item
+  },
+  {
+    type: SectionType.Evaluation,
+    label: 'Evaluation Parameters',
+    icon: <FactCheckIcon fontSize="small" />,
+  },
+];
 
 export const BlendEditor: React.FC<BlendEditorProps> = ({
   data,
@@ -55,7 +81,7 @@ export const BlendEditor: React.FC<BlendEditorProps> = ({
     setAnchorEl(null);
   };
 
-  const hasPrepMethod = data.sections?.some((sec) => sec.sectionTypeId === SectionType.PreparationMethod);
+  //const hasPrepMethod = data.sections?.some((sec) => sec.sectionTypeId === SectionType.PreparationMethod);
 
   const handleAddSection = (sectionTypeId: SectionType) => {
     handleCloseMenu();
@@ -226,31 +252,16 @@ export const BlendEditor: React.FC<BlendEditorProps> = ({
           transformOrigin={{ horizontal: 'center', vertical: 'top' }}
           anchorOrigin={{ horizontal: 'center', vertical: 'bottom' }}
         >
-          <MenuItem onClick={() => handleAddSection(1)}>
-            <ListItemIcon>
-              <FastfoodIcon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText primary="Ingredients Section" />
-          </MenuItem>
+          {SECTION_OPTIONS.map((option) => (
+            <React.Fragment key={option.type}>
+              <MenuItem onClick={() => handleAddSection(option.type)}>
+                <ListItemIcon>{option.icon}</ListItemIcon>
+                <ListItemText primary={option.label} />
+              </MenuItem>
 
-          <MenuItem onClick={() => handleAddSection(2)} disabled={hasPrepMethod}>
-            <ListItemIcon>
-              <BuildIcon fontSize="small" color={hasPrepMethod ? 'disabled' : 'inherit'} />
-            </ListItemIcon>
-            <ListItemText
-              primary="Preparation Method"
-              secondary={hasPrepMethod ? 'Already added' : undefined}
-            />
-          </MenuItem>
-
-          <Divider />
-
-          <MenuItem onClick={() => handleAddSection(3)}>
-            <ListItemIcon>
-              <AssessmentIcon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText primary="Evaluation Parameters" />
-          </MenuItem>
+              {option.hasDividerAfter && <Divider />}
+            </React.Fragment>
+          ))}
         </Menu>
       </Box>
     </Container>

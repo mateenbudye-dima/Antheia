@@ -73,7 +73,7 @@ export const useBlendMutations = (blendId: number) => {
 
   // Delete Mutation
   const deleteSectionMutation = useMutation({
-    mutationFn: (sectionId: number) => blendsApi.deleteSection(sectionId),
+    mutationFn: (sectionId: number) => blendsApi.deleteSection(blendId, sectionId),
     onSuccess: () => {
       // Invalidate blend query so UI, tree, and sections re-sync automatically
       queryClient.invalidateQueries({ queryKey: blendKeys.detail(blendId) });

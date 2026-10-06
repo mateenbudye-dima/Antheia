@@ -113,8 +113,8 @@ export const blendsApi = {
     await apiClient.post(`/blends/${blendId}/sections`, payload);
   },
 
-  deleteSection: async (sectionId: number): Promise<void> => {
-    await apiClient.delete(`/blends/sections/${sectionId}`);
+  deleteSection: async (blendId: number, sectionId: number): Promise<void> => {
+    await apiClient.delete(`/blends/${blendId}/sections/${sectionId}`);
   },
   
   // ==========================================
