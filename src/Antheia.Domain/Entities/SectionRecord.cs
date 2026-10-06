@@ -16,6 +16,7 @@ public partial class SectionRecord
 
     public byte? SectionOrder { get; set; }
 
+    [LogOnAdded]
     public SectionType SectionTypeId { get; set; }
 
     public string SectionTitle { get; set; } = null!;

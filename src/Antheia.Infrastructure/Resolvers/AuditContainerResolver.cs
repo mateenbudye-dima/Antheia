@@ -60,7 +60,12 @@ namespace Antheia.Infrastructure.Resolvers
             return new AuditEntityReference
             {
                 EntityType = "Blend",
-                EntityId = blendId.ToString()
+                EntityId = blendId.ToString(),
+                Name = await context.Set<BlendRecord>()
+                    .AsNoTracking()
+                    .Where(x => x.BlendId == blendId)
+                    .Select(x => x.Code)
+                    .FirstOrDefaultAsync(cancellationToken)
             };
         }
 

@@ -69,8 +69,8 @@ public sealed class AuditLogService(
             cancellationToken);
 
         var items = await logsQuery
-            .OrderByDescending(x => x.TimestampUtc)
-            .ThenByDescending(x => x.Id)
+            .OrderBy(x => x.TimestampUtc)
+            .ThenBy(x => x.Id)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
             .Select(x => new AuditLogResult

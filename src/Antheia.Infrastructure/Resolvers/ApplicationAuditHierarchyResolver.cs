@@ -1,4 +1,5 @@
 ﻿using Antheia.Domain.Entities;
+using Antheia.Domain.Enums;
 using Dima.ChangeAudit.Abstractions;
 using Dima.ChangeAudit.Models.Resolvers;
 using Microsoft.EntityFrameworkCore;
@@ -6,8 +7,7 @@ using Microsoft.EntityFrameworkCore.ChangeTracking;
 
 namespace Antheia.Infrastructure.Resolvers;
 
-public sealed class ApplicationAuditHierarchyResolver
-    : IAuditHierarchyResolver
+public sealed class ApplicationAuditHierarchyResolver : IAuditHierarchyResolver
 {
     private readonly IAuditContainerResolver _containerResolver;
 
@@ -90,20 +90,63 @@ public sealed class ApplicationAuditHierarchyResolver
             context,
             cancellationToken);
 
+        // Resolve Section Title or fallback to SectionType enum string
+        var sectionName = !string.IsNullOrWhiteSpace(section.SectionTitle)
+            ? section.SectionTitle
+            : section.SectionTypeId.ToString();
+
+        // Optional: Extract Name/Title from child entity if available (e.g. Ingredient Name)
+        var childName = GetEntityDisplayName(entry);
+
         return new AuditHierarchy
         {
             Root = container,
+            // Explicitly describe the child entity being audited
+            Target = new AuditEntityReference
+            {
+                EntityType = entry.Metadata.ClrType.Name,
+                EntityId = ResolvePrimaryKeyValue(entry),
+                Name = childName
+            },
+            // Section acts as the intermediate parent
             Parents =
             [
                 new AuditEntityReference
                 {
                     EntityType = "Section",
-                    EntityId = section.SectionId.ToString()
+                    EntityId = section.SectionId.ToString(),
+                    Name = sectionName,
+                    Metadata = new Dictionary<string, string>
+                    {
+                        { "SectionType", section.SectionTypeId.ToString() },
+                        { "SectionTypeId", ((int)section.SectionTypeId).ToString() }
+                    }
                 }
             ]
         };
     }
+    private static string? GetEntityDisplayName(EntityEntry entry)
+    {
+        // List candidate property names you want to check for display purposes
+        string[] candidateProperties = ["Name", "Title", "Description", "DisplayName"];
 
+        foreach (var propName in candidateProperties)
+        {
+            // FindProperty returns null if the property does not exist on the EF metadata
+            if (entry.Metadata.FindProperty(propName) != null)
+            {
+                var value = entry.Property(propName).CurrentValue
+                         ?? entry.Property(propName).OriginalValue;
+
+                if (value != null && !string.IsNullOrWhiteSpace(value.ToString()))
+                {
+                    return value.ToString();
+                }
+            }
+        }
+
+        return null;
+    }
     private async Task<AuditHierarchy?> ResolveSectionAsync(
         EntityEntry entry,
         DbContext context,
@@ -126,10 +169,72 @@ public sealed class ApplicationAuditHierarchyResolver
             context,
             cancellationToken);
 
+        var sectionName = entry.Property("SectionTitle")?.CurrentValue?.ToString();
+        string? sectionTypeString = null;
+        string? sectionTypeIdString = null;
+
+        var sectionTypeProperty = entry.Property("SectionTypeId")?.CurrentValue
+            ?? entry.Property("SectionType")?.OriginalValue;
+
+        if (sectionTypeProperty != null)
+        {
+            if (sectionTypeProperty is SectionType sectionType)
+            {
+                sectionTypeString = sectionType.ToString();
+                sectionTypeIdString = ((int)sectionType).ToString();
+            }
+            else if (int.TryParse(sectionTypeProperty.ToString(), out int sectionTypeValue))
+            {
+                var parsedType = (SectionType)sectionTypeValue;
+                sectionTypeString = parsedType.ToString();
+                sectionTypeIdString = sectionTypeValue.ToString();
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(sectionName))
+        {
+            sectionName = sectionTypeString;
+        }
+
+        var metadata = new Dictionary<string, string>();
+        if (!string.IsNullOrEmpty(sectionTypeString))
+            metadata["SectionType"] = sectionTypeString;
+        if (!string.IsNullOrEmpty(sectionTypeIdString))
+            metadata["SectionTypeId"] = sectionTypeIdString;
+
         return new AuditHierarchy
         {
-            Root = container
+            Root = container,
+            // Section itself is the Target
+            Target = new AuditEntityReference
+            {
+                EntityType = "Section",
+                EntityId = ResolvePrimaryKeyValue(entry),
+                Name = sectionName,
+                Metadata = metadata
+            },
+            Parents = [] // Pure container relationship: Blend > Section
         };
+    }
+
+    private static string ResolvePrimaryKeyValue(EntityEntry entry)
+    {
+        var primaryKey = entry.Metadata.FindPrimaryKey();
+
+        if (primaryKey == null)
+            return "0";
+
+        var values = primaryKey.Properties
+            .Select(property =>
+                entry.Property(property.Name)
+                    .CurrentValue?
+                    .ToString()
+                ?? entry.Property(property.Name)
+                    .OriginalValue?
+                    .ToString()
+                ?? "0");
+
+        return string.Join(",", values);
     }
 
     private static int? GetIntValue(

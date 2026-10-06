@@ -1,14 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Dima.ChangeAudit.Models.Resolvers
+﻿namespace Dima.ChangeAudit.Models.Resolvers
 {
     public sealed class AuditHierarchy
     {
-        public AuditEntityReference? Root { get; init; }
+        public AuditEntityReference? Root { get; set; }
 
-        public IReadOnlyList<AuditEntityReference> Parents { get; init; }
-            = [];
+        /// <summary>
+        /// Describes the entity being directly audited/changed (e.g., Section name, Title).
+        /// </summary>
+        public AuditEntityReference? Target { get; set; }
+
+        /// <summary>
+        /// Intermediate parents between Root and Target. Excludes Target and Root.
+        /// </summary>
+        public List<AuditEntityReference> Parents { get; set; } = [];
     }
 }

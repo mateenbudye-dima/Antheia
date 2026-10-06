@@ -40,7 +40,9 @@ public class BlendService : IBlendService
             var blend = new BlendRecord
             {
                 Code = "",
-                TrialNumber = "",
+                TrialNumber = null,
+                Description = null,
+                Objective = null,
                 OrganizationId = _currentUser.OrganizationId,
                 AuthorId = _currentUser.UserId,
                 CreatedBy = _currentUser.UserId,

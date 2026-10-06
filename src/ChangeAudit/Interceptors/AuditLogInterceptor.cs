@@ -27,6 +27,10 @@ public class AuditLogInterceptor(
         PropertyInfo,
         bool> PropertyIgnoreCache = new();
 
+    private static readonly ConcurrentDictionary<
+        PropertyInfo,
+        bool> LogOnAddedCache = new();
+
     private static readonly HashSet<string> AutoIgnoredProperties =
         new(StringComparer.OrdinalIgnoreCase)
         {
@@ -107,14 +111,10 @@ public class AuditLogInterceptor(
                 cancellationToken);
         }
 
-        /*
-         * SQL Server has now generated identity values.
-         */
         foreach (var pendingAudit in auditEntries)
         {
             var audit = pendingAudit.AuditLog;
 
-            // Resolve the real generated EntityId.
             audit.EntityId = ResolvePrimaryKeyValue(
                 pendingAudit.Entry);
 
@@ -189,11 +189,6 @@ public class AuditLogInterceptor(
                     context,
                     cancellationToken);
 
-            /*
-             * If hierarchy has a Root, use it.
-             *
-             * Otherwise the changed entity itself is the root.
-             */
             var isSelfRoot = hierarchy?.Root == null;
 
             var rootEntityType =
@@ -241,28 +236,40 @@ public class AuditLogInterceptor(
             foreach (var property in entry.Properties)
             {
                 if (property.Metadata.IsPrimaryKey() ||
-                    AutoIgnoredProperties.Contains(
-                        property.Metadata.Name))
+                    AutoIgnoredProperties.Contains(property.Metadata.Name))
                 {
                     continue;
                 }
 
-                if (entry.State == EntityState.Modified &&
-                    !property.IsModified)
+                if (entry.State == EntityState.Modified && !property.IsModified)
                 {
                     continue;
                 }
 
                 var propInfo = property.Metadata.PropertyInfo;
 
+                // 1. Check [IgnoreAudit] attribute
                 if (propInfo != null &&
                     PropertyIgnoreCache.GetOrAdd(
                         propInfo,
-                        p =>
-                            p.GetCustomAttribute<IgnoreAuditAttribute>(
-                                inherit: true) != null))
+                        p => IsPropertyAttributePresent<IgnoreAuditAttribute>(p, entityType)))
                 {
                     continue;
+                }
+
+                // 2. Check [LogOnAdded] attribute when EntityState == Added
+                if (entry.State == EntityState.Added)
+                {
+                    var shouldLogOnAdded = propInfo != null &&
+                        LogOnAddedCache.GetOrAdd(
+                            propInfo,
+                            p => IsPropertyAttributePresent<LogOnAddedAttribute>(p, entityType));
+
+                    // Skip logging property on insert unless explicitly decorated with [LogOnAdded]
+                    if (!shouldLogOnAdded)
+                    {
+                        continue;
+                    }
                 }
 
                 var oldValue =
@@ -274,12 +281,6 @@ public class AuditLogInterceptor(
                     entry.State == EntityState.Deleted
                         ? null
                         : property.CurrentValue;
-
-                if (entry.State == EntityState.Added)
-                {
-                    //skip logging all properties for added entities
-                    continue;
-                }
 
                 changeLog.Details.Add(
                     new AuditLogDetail
@@ -311,6 +312,24 @@ public class AuditLogInterceptor(
         }
 
         return auditEntries;
+    }
+
+    private static bool IsPropertyAttributePresent<TAttr>(PropertyInfo propInfo, Type entityType)
+        where TAttr : Attribute
+    {
+        // Direct attribute check on the domain property
+        if (propInfo.GetCustomAttribute<TAttr>(inherit: true) != null)
+            return true;
+
+        // MetadataType check for scaffolded DB-First entities
+        var metadataTypeAttr = entityType.GetCustomAttribute<MetadataTypeAttribute>(inherit: true);
+        if (metadataTypeAttr != null)
+        {
+            var metaProp = metadataTypeAttr.MetadataClassType.GetProperty(propInfo.Name);
+            return metaProp?.GetCustomAttribute<TAttr>(inherit: true) != null;
+        }
+
+        return false;
     }
 
     private async Task SaveAuditEntriesAsync(
@@ -411,27 +430,6 @@ public class AuditLogInterceptor(
 
         throw new InvalidOperationException(
             "A valid user ID is required for audit logging.");
-    }
-
-    private static bool IsEmptyAuditValue(object? value)
-    {
-        if (value is null)
-            return true;
-
-        if (value is string text)
-            return string.IsNullOrWhiteSpace(text);
-
-        var type = value.GetType();
-
-        if (type.IsValueType)
-        {
-            var defaultValue =
-                Activator.CreateInstance(type);
-
-            return value.Equals(defaultValue);
-        }
-
-        return false;
     }
 
     private static string? FormatPropertyValue(object? value)

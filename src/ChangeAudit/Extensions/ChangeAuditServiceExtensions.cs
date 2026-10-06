@@ -20,6 +20,7 @@ public static class ChangeAuditServiceExtensions
         services.AddScoped<AuditLogInterceptor>();
 
         services.AddScoped<IAuditLogService, AuditLogService>();
+        services.AddSingleton<IAuditLogDisplayFormatter, AuditLogDisplayFormatter>();
         return services;
     }
 }
