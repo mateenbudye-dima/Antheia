@@ -1,116 +1,87 @@
-﻿using Antheia.Domain.Entities;
-using Dima.ChangeAudit.Abstractions;
-using Microsoft.EntityFrameworkCore;
-using Antheia.Domain.Enums;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Text;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Antheia.Domain.Entities;
+using Antheia.Domain.Enums;
+using Dima.ChangeAudit.Abstractions;
 using Dima.ChangeAudit.Models.Resolvers;
+using Microsoft.EntityFrameworkCore;
+using static Antheia.Infrastructure.Resolvers.ApplicationAuditHierarchyResolver;
 
-namespace Antheia.Infrastructure.Resolvers
+namespace Antheia.Infrastructure.Resolvers;
+
+public sealed class AuditContainerResolver : IAuditContainerResolver
 {
-    public sealed class AuditContainerResolver
-    : IAuditContainerResolver
+    public async Task<AuditEntityReference?> ResolveAsync(
+        int containerId,
+        byte containerTypeId,
+        DbContext context,
+        CancellationToken cancellationToken = default)
     {
-        public async Task<AuditEntityReference?> ResolveAsync(
-            int containerId,
-            byte containerTypeId,
-            DbContext context,
-            CancellationToken cancellationToken = default)
+        var cacheKey = (containerId, containerTypeId);
+        var cache = BatchHierarchyCache.GetOrCreate(context);
+
+        // 1. Check Batch Cache
+        if (cache.Containers.TryGetValue(cacheKey, out var cachedReference))
         {
-            return containerTypeId switch
-            {
-                (byte)SectionContainerType.Blend =>
-                    await ResolveBlendAsync(
-                        containerId,
-                        context,
-                        cancellationToken),
-
-                //(byte)SectionContainerType.Experiment =>
-                //    await ResolveExperimentAsync(
-                //        containerId,
-                //        context,
-                //        cancellationToken),
-
-                //(byte)SectionContainerType.Template =>
-                //    await ResolveTemplateAsync(
-                //        containerId,
-                //        context,
-                //        cancellationToken),
-
-                _ => null
-            };
+            return cachedReference;
         }
 
-        private static async Task<AuditEntityReference?>
-            ResolveBlendAsync(
-                int blendId,
-                DbContext context,
-                CancellationToken cancellationToken)
+        AuditEntityReference? reference = containerTypeId switch
         {
-            var exists = await context.Set<BlendRecord>()
-                .AsNoTracking()
-                .AnyAsync(
-                    x => x.BlendId == blendId,
-                    cancellationToken);
+            (byte)SectionContainerType.Blend =>
+                await ResolveBlendAsync(
+                    containerId,
+                    context,
+                    cancellationToken),
 
-            if (!exists)
-                return null;
+            _ => null
+        };
 
+        if (reference != null)
+        {
+            cache.Containers[cacheKey] = reference;
+        }
+
+        return reference;
+    }
+
+    private static async Task<AuditEntityReference?> ResolveBlendAsync(
+        int blendId,
+        DbContext context,
+        CancellationToken cancellationToken)
+    {
+        // 1. Check EF Core Local Memory (0 DB Queries)
+        var localBlend = context.Set<BlendRecord>().Local
+            .FirstOrDefault(x => x.BlendId == blendId);
+
+        if (localBlend != null)
+        {
             return new AuditEntityReference
             {
                 EntityType = "Blend",
                 EntityId = blendId.ToString(),
-                Name = await context.Set<BlendRecord>()
-                    .AsNoTracking()
-                    .Where(x => x.BlendId == blendId)
-                    .Select(x => x.Code)
-                    .FirstOrDefaultAsync(cancellationToken)
+                Name = localBlend.Code
             };
         }
 
-        //private static async Task<AuditEntityReference?>
-        //    ResolveExperimentAsync(
-        //        int experimentId,
-        //        DbContext context,
-        //        CancellationToken cancellationToken)
-        //{
-        //    var exists = await context.Set<ExperimentRecord>()
-        //        .AsNoTracking()
-        //        .AnyAsync(
-        //            x => x.ExperimentId == experimentId,
-        //            cancellationToken);
+        // 2. Direct Single Query (Replaces separate AnyAsync + Select query)
+        var code = await context.Set<BlendRecord>()
+            .AsNoTracking()
+            .Where(x => x.BlendId == blendId)
+            .Select(x => x.Code)
+            .FirstOrDefaultAsync(cancellationToken);
 
-        //    if (!exists)
-        //        return null;
+        if (code == null)
+            return null;
 
-        //    return new AuditEntityReference
-        //    {
-        //        EntityType = "Experiment",
-        //        EntityId = experimentId.ToString()
-        //    };
-        //}
-
-        //private static async Task<AuditEntityReference?>
-        //    ResolveTemplateAsync(
-        //        int templateId,
-        //        DbContext context,
-        //        CancellationToken cancellationToken)
-        //{
-        //    var exists = await context.Set<Template>()
-        //        .AsNoTracking()
-        //        .AnyAsync(
-        //            x => x.TemplateId == templateId,
-        //            cancellationToken);
-
-        //    if (!exists)
-        //        return null;
-
-        //    return new AuditEntityReference
-        //    {
-        //        EntityType = "Template",
-        //        EntityId = templateId.ToString()
-        //    };
-        //}
+        return new AuditEntityReference
+        {
+            EntityType = "Blend",
+            EntityId = blendId.ToString(),
+            Name = code
+        };
     }
 }

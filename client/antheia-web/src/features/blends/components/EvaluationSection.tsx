@@ -15,6 +15,8 @@ const COLUMNS: ColumnConfig[] = [
 interface Props {
   blendId: number;
   sectionId: number;
+  sectionTitle: string;
+  blendCode: string;
   initialEvaluations: EvaluationItem[];
 }
 
@@ -22,6 +24,8 @@ export const EvaluationSection: React.FC<Props> = ({
   blendId,
   sectionId,
   initialEvaluations,
+  sectionTitle,
+  blendCode,
 }) => {
   const [evaluations, setEvaluations] = useState<EvaluationItem[]>(initialEvaluations);
   const { addEvaluationAsync, deleteEvaluationAsync } = useBlendMutations(blendId);
@@ -34,6 +38,9 @@ export const EvaluationSection: React.FC<Props> = ({
         specification: '',
         result: '',
         status: 'Pending',
+        SectionTitle: sectionTitle,
+        BlendId: blendId,
+        BlendCode: blendCode,  
       });
       setEvaluations((prev) => [...prev, newEvaluation]);
     } catch (err) {

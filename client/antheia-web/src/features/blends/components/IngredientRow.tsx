@@ -20,13 +20,21 @@ import { useBlendMutations } from '../hooks/useBlendMutations';
 
 interface IngredientRowProps {
   blendId: number;
+  sectionId: number;
+  sectionTitle: string;
+  blendCode: string;
   item: Ingredient;
   onChange: (id: number, field: keyof Ingredient, value: string | number) => void;
   onDelete: (id: number) => void;
+
+  
 }
 
 export const IngredientRow: React.FC<IngredientRowProps> = ({
   blendId,
+  sectionId,
+  sectionTitle,
+  blendCode,
   item,
   onChange,
   onDelete,
@@ -44,9 +52,13 @@ export const IngredientRow: React.FC<IngredientRowProps> = ({
           type: debouncedItem.type,
           ratio: debouncedItem.ratio,
           quantity: debouncedItem.quantity,
+          SectionId: sectionId, 
+          SectionTitle: sectionTitle, 
+          BlendId: blendId,
+          BlendCode: blendCode, 
         },
       });
-    },
+    }
   });
 
   // Block non-numeric key presses ('e', 'E', '+', '-') in number fields

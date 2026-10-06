@@ -9,14 +9,23 @@ public record CreateEvaluationDto(
     string EvaluationParameter,
     string? Specification,
     string? Result,
-    string? Status
+    string? Status,
+
+    string SectionTitle,
+    int BlendId,
+    string BlendCode
 );
 
 public record UpdateEvaluationDto(
     string EvaluationParameter,
     string? Specification,
     string? Result,
-    string? Status
+    string? Status,
+
+    int SectionId,
+    string SectionTitle,
+    int BlendId,
+    string BlendCode
 );
 
 public record EvaluationResponseDto(

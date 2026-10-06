@@ -60,6 +60,7 @@ export const BlendEditor: React.FC<BlendEditorProps> = ({
   const handleAddSection = (sectionTypeId: SectionType) => {
     handleCloseMenu();
     const payload: CreateSectionPayload = {
+      blendCode: data.code || '',
       sectionTypeId,
       sectionTitle:
         sectionTypeId === SectionType.Ingredients
@@ -145,7 +146,9 @@ export const BlendEditor: React.FC<BlendEditorProps> = ({
           <IngredientsSection
             key={section.sectionId}
             blendId={data.blendId}
+            blendCode={data.code || ''}
             sectionId={section.sectionId}
+            sectionTitle={section.sectionTitle || ''}
             initialIngredients={section.ingredients || []}
           />
         );
@@ -155,6 +158,9 @@ export const BlendEditor: React.FC<BlendEditorProps> = ({
           <PrepMethodSection
             key={section.sectionId}
             blendId={data.blendId}
+            sectionId={section.sectionId}
+            sectionTitle={section.sectionTitle || ''}
+            blendCode={data.code || ''}
             prepData={section.preparationMethod}
           />
         ) : null;
@@ -165,6 +171,8 @@ export const BlendEditor: React.FC<BlendEditorProps> = ({
             key={section.sectionId}
             blendId={data.blendId}
             sectionId={section.sectionId}
+            sectionTitle={section.sectionTitle || ''}
+            blendCode={data.code || ''}
             initialEvaluations={section.evaluations || []}
           />
         );

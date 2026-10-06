@@ -22,7 +22,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\WorkFlowAuditMiddleware\WorkFlowAuditMiddleware.csproj" />
+    <ProjectReference Include="..\..\WorkFlowAuditMiddleware\Dima.WorkFlowAuditMiddleware.csproj" />
     <ProjectReference Include="..\Antheia.Application\Antheia.Application.csproj" />
     <ProjectReference Include="..\Antheia.Infrastructure\Antheia.Infrastructure.csproj" />
     <ProjectReference Include="..\ChangeAudit\Dima.ChangeAudit.csproj" />

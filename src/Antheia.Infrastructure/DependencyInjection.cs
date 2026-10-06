@@ -12,6 +12,7 @@ using Dima.WorkFlowAuditMiddleware.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 public static class DependencyInjection
 {
@@ -30,7 +31,8 @@ public static class DependencyInjection
 
         // Add Antheia Application DbContext
         services.AddDbContext<AntheiaDbContext>((serviceProvider, options) =>
-            options.UseSqlServer(connectionString).UseChangeAudit(serviceProvider));       
+            options.UseSqlServer(connectionString)
+            .UseChangeAudit(serviceProvider));       
 
         // Add Change Audit Middleware
         services.AddAuditLogging(connectionString);

@@ -1,4 +1,10 @@
-﻿using Antheia.Domain.Entities;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
+using Antheia.Domain.Entities;
 using Antheia.Domain.Enums;
 using Dima.ChangeAudit.Abstractions;
 using Dima.ChangeAudit.Models.Resolvers;
@@ -75,11 +81,30 @@ public sealed class ApplicationAuditHierarchyResolver : IAuditHierarchyResolver
         if (sectionId == null)
             return null;
 
-        var section = await context.Set<SectionRecord>()
-            .AsNoTracking()
-            .FirstOrDefaultAsync(
-                x => x.SectionId == sectionId.Value,
-                cancellationToken);
+        var cache = BatchHierarchyCache.GetOrCreate(context);
+
+        // 1. Check Batch Cache
+        if (!cache.Sections.TryGetValue(sectionId.Value, out var section))
+        {
+            // 2. Check EF Core Local Memory (0 DB Queries)
+            section = context.Set<SectionRecord>().Local
+                .FirstOrDefault(x => x.SectionId == sectionId.Value);
+
+            // 3. Fallback to DB Query if untracked
+            if (section == null)
+            {
+                section = await context.Set<SectionRecord>()
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(
+                        x => x.SectionId == sectionId.Value,
+                        cancellationToken);
+            }
+
+            if (section != null)
+            {
+                cache.Sections[sectionId.Value] = section;
+            }
+        }
 
         if (section == null)
             return null;
@@ -125,6 +150,7 @@ public sealed class ApplicationAuditHierarchyResolver : IAuditHierarchyResolver
             ]
         };
     }
+
     private static string? GetEntityDisplayName(EntityEntry entry)
     {
         // Suffixes to check against property names
@@ -150,6 +176,7 @@ public sealed class ApplicationAuditHierarchyResolver : IAuditHierarchyResolver
 
         return null;
     }
+
     private async Task<AuditHierarchy?> ResolveSectionAsync(
         EntityEntry entry,
         DbContext context,
@@ -253,5 +280,19 @@ public sealed class ApplicationAuditHierarchyResolver : IAuditHierarchyResolver
         return value == null
             ? null
             : Convert.ToInt32(value);
+    }
+
+    // Helper class scoped to the DbContext execution life
+    internal sealed class BatchHierarchyCache
+    {
+        private static readonly ConditionalWeakTable<DbContext, BatchHierarchyCache> _caches = new();
+
+        public Dictionary<int, SectionRecord> Sections { get; } = new();
+        public Dictionary<(int ContainerId, byte ContainerTypeId), AuditEntityReference> Containers { get; } = new();
+
+        public static BatchHierarchyCache GetOrCreate(DbContext context)
+        {
+            return _caches.GetOrCreateValue(context);
+        }
     }
 }

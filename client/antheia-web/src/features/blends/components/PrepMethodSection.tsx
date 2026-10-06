@@ -4,7 +4,15 @@ import type { PreparationMethod } from '../types/blend.types';
 import { useAutoSave } from '../../../shared/hooks/useAutoSave';
 import { useBlendMutations } from '../hooks/useBlendMutations';
 
-export const PrepMethodSection: React.FC<{blendId:number, prepData: PreparationMethod }> = ({ blendId, prepData }) => {
+interface Props {
+  blendId: number;
+  sectionId: number;
+  sectionTitle: string;
+  blendCode: string;
+  prepData: PreparationMethod;
+}
+
+export const PrepMethodSection: React.FC<Props> = ({ blendId, sectionId, sectionTitle, blendCode, prepData }) => {
   const [prep, setPrep] = useState<PreparationMethod>(prepData);
 
   const {updatePrepMethodAsync} = useBlendMutations(blendId );
@@ -20,6 +28,10 @@ export const PrepMethodSection: React.FC<{blendId:number, prepData: PreparationM
         mixingSpeed: debouncedPrep.mixingSpeed,
         mixingTime: debouncedPrep.mixingTime,
         temperature: debouncedPrep.temperature,
+        SectionId: sectionId,
+        SectionTitle: sectionTitle,
+        BlendId: blendId,
+        BlendCode: blendCode,
         }
       });
     },

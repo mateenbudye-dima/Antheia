@@ -11,7 +11,8 @@ public record UpdateBlendHeaderDto(
 
 public record AddSectionDto(
     SectionType SectionTypeId,
-    string SectionTitle
+    string SectionTitle,
+    string BlendCode
 );
 
 public record IngredientDto(

@@ -12,9 +12,6 @@ public interface IBlendService
     Task<bool> UpdateHeaderAsync(int blendId, UpdateBlendHeaderDto dto);
     Task<int> AddSectionAsync(int blendId, AddSectionDto dto);
     Task<bool> DeleteSectionAsync(int sectionId);
-    Task<bool> SyncIngredientsAsync(int sectionId, List<IngredientDto> ingredients);
-    Task<bool> SavePrepMethodAsync(int sectionId, PrepMethodDto dto);
-    Task<bool> SyncEvaluationsAsync(int sectionId, List<EvaluationDto> evaluations);
     Task<List<BlendListItemDto>> GetBlendListAsync();
     Task<GetBlendForEditDto?> GetBlendForEditAsync(int blendId);
 

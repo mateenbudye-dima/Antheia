@@ -15,13 +15,17 @@ const COLUMNS: ColumnConfig[] = [
 
 interface Props {
   blendId: number;
+  blendCode: string;
   sectionId: number;
+  sectionTitle: string;
   initialIngredients: Ingredient[];
 }
 
 export const IngredientsSection: React.FC<Props> = ({
   blendId,
+  blendCode,
   sectionId,
+  sectionTitle,
   initialIngredients,
 }) => {
   const [ingredients, setIngredients] = useState<Ingredient[]>(initialIngredients);
@@ -45,6 +49,9 @@ export const IngredientsSection: React.FC<Props> = ({
         type: IngredientType.Unknown,
         ratio: 0,
         quantity: 0,
+        SectionTitle: sectionTitle,
+        BlendId: blendId,
+        BlendCode: blendCode,
       });
       setIngredients((prev) => [...prev, newIngredient]);
     } catch (err) {
@@ -99,6 +106,9 @@ export const IngredientsSection: React.FC<Props> = ({
         <IngredientRow
           key={item.sectionIngredientId}
           blendId={blendId}
+          sectionId={sectionId}
+          sectionTitle={sectionTitle}
+          blendCode={blendCode}
           item={item}
           onChange={updateLocalField}
           onDelete={deleteRow}

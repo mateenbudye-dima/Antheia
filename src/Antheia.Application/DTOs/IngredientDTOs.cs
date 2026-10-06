@@ -7,14 +7,24 @@ public record CreateIngredientDto(
     string Name,
     IngredientType Type,
     decimal? Ratio,
-    decimal? Quantity
+    decimal? Quantity,
+
+    string SectionTitle,
+    int BlendId,
+    string? BlendCode
 );
 
 public record UpdateIngredientDto(
     string Name,
     IngredientType Type,
     decimal? Ratio,
-    decimal? Quantity
+    decimal? Quantity,
+
+    // Optional metadata to avoid EF hierarchy reads during audit
+    int SectionId,
+    string SectionTitle,
+    int BlendId,
+    string? BlendCode
 );
 
 public record IngredientResponseDto(

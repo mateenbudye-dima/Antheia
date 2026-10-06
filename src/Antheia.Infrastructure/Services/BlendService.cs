@@ -1,12 +1,13 @@
 ﻿using Antheia.Application.DTOs;
+using Antheia.Application.Exceptions;
 using Antheia.Application.Interfaces;
 using Antheia.Domain.Entities;
-using Antheia.Infrastructure.Data;
-using Microsoft.EntityFrameworkCore;
-using Antheia.Application.Exceptions;
-using Microsoft.Extensions.Logging;
 using Antheia.Domain.Enums;
+using Antheia.Infrastructure.Data;
+using Antheia.Infrastructure.Extensions;
 using Dima.WorkFlowAuditMiddleware.Services;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Antheia.Infrastructure.Services;
 
@@ -214,6 +215,7 @@ public class BlendService : IBlendService
         {
             throw new NotFoundException($"Blend with ID {blendId} was not found.");
         }
+        EnsureParentStubsExist(blendId, dto.BlendCode);
 
         // 2. Prevent Duplicate Section Types
         var existingSectionTypes = await _context.SectionRecords
@@ -316,15 +318,7 @@ public class BlendService : IBlendService
             throw;
         }
     }
-
-    private static string GetSectionTitle(SectionType sectionType) => sectionType switch
-    {
-        SectionType.Ingredient => "Ingredients",
-        SectionType.PreparationMethod => "Preparation Method",
-        SectionType.Evaluation => "Emulsifier Blend Evaluation",
-        _ => "Section"
-    };
-
+    
     // 4. Soft deletes a section
     public async Task<bool> DeleteSectionAsync(int sectionId)
     {
@@ -355,121 +349,6 @@ public class BlendService : IBlendService
         catch (Exception ex)
         {
             _logger.LogError(ex, "DeleteSectionAsync failed for SectionId:{SectionId}", sectionId);
-            throw;
-        }
-    }
-
-    // 5. Reconciles and updates ingredients for a section
-    public async Task<bool> SyncIngredientsAsync(int sectionId, List<IngredientDto> ingredients)
-    {
-        try
-        {
-            _logger.LogInformation("SyncIngredientsAsync called for SectionId:{SectionId} by User:{UserId}. Incoming count:{Count}", sectionId, _currentUser.UserId, ingredients?.Count ?? 0);
-            var existing = await _context.Ingredients
-                .Where(i => i.SectionId == sectionId)
-                .ToListAsync();
-
-            _context.Ingredients.RemoveRange(existing);
-
-            var newEntries = (ingredients ?? Enumerable.Empty<IngredientDto>()).Select(i => new Ingredient
-            {
-                SectionId = sectionId,
-                Name = i.Name,
-                Type = i.Type,
-                Ratio = i.Ratio,
-                Quantity = i.Quantity,
-                IsActive = true,
-                CreatedBy = _currentUser.UserId,
-                CreatedDate = DateTime.UtcNow,
-                UpdatedBy = _currentUser.UserId,
-                UpdatedDate = DateTime.UtcNow
-            });
-
-            _context.Ingredients.AddRange(newEntries);
-            await _context.SaveChangesAsync();
-            _logger.LogInformation("SyncIngredientsAsync: synced {Count} ingredients for SectionId:{SectionId}", ingredients?.Count ?? 0, sectionId);
-            return true;
-        }
-        catch (DbUpdateException dbEx)
-        {
-            _logger.LogError(dbEx, "SyncIngredientsAsync: database error for SectionId:{SectionId}", sectionId);
-            throw;
-        }
-    }
-
-    // 6. Upserts preparation method details
-    public async Task<bool> SavePrepMethodAsync(int sectionId, PrepMethodDto dto)
-    {
-        try
-        {
-            _logger.LogInformation("SavePrepMethodAsync called for SectionId:{SectionId} by User:{UserId}", sectionId, _currentUser.UserId);
-            var prep = await _context.PreparationMethods
-                .FirstOrDefaultAsync(p => p.SectionId == sectionId);
-
-            if (prep == null)
-            {
-                prep = new PreparationMethod
-                {
-                    SectionId = sectionId,
-                    IsActive = true,
-                    CreatedBy = _currentUser.UserId,
-                    CreatedDate = DateTime.UtcNow
-                };
-                _context.PreparationMethods.Add(prep);
-            }
-
-            prep.AdditionSequence = dto.AdditionSequence;
-            prep.MixingSpeed = dto.MixingSpeed;
-            prep.MixingTime = dto.MixingTime;
-            prep.Temperature = dto.Temperature;
-            prep.UpdatedBy = _currentUser.UserId;
-            prep.UpdatedDate = DateTime.UtcNow;
-
-            await _context.SaveChangesAsync();
-            _logger.LogInformation("SavePrepMethodAsync: preparation method upserted for SectionId:{SectionId}", sectionId);
-            return true;
-        }
-        catch (DbUpdateException dbEx)
-        {
-            _logger.LogError(dbEx, "SavePrepMethodAsync: database error for SectionId:{SectionId}", sectionId);
-            throw;
-        }
-    }
-
-    // 7. Reconciles evaluation parameters
-    public async Task<bool> SyncEvaluationsAsync(int sectionId, List<EvaluationDto> evaluations)
-    {
-        try
-        {
-            _logger.LogInformation("SyncEvaluationsAsync called for SectionId:{SectionId} by User:{UserId}. Incoming count:{Count}", sectionId, _currentUser.UserId, evaluations?.Count ?? 0);
-            var existing = await _context.Evaluations
-                .Where(e => e.SectionId == sectionId)
-                .ToListAsync();
-
-            _context.Evaluations.RemoveRange(existing);
-
-            var newEntries = (evaluations ?? Enumerable.Empty<EvaluationDto>()).Select(e => new Evaluation
-            {
-                SectionId = sectionId,
-                EvaluationParameter = e.EvaluationParameter,
-                Result = e.Result,
-                Specification = e.Specification,
-                Status = e.Status,
-                IsActive = true,
-                CreatedBy = _currentUser.UserId,
-                CreatedDate = DateTime.UtcNow,
-                UpdatedBy = _currentUser.UserId,
-                UpdatedDate = DateTime.UtcNow
-            });
-
-            _context.Evaluations.AddRange(newEntries);
-            await _context.SaveChangesAsync();
-            _logger.LogInformation("SyncEvaluationsAsync: synced {Count} evaluations for SectionId:{SectionId}", evaluations?.Count ?? 0, sectionId);
-            return true;
-        }
-        catch (DbUpdateException dbEx)
-        {
-            _logger.LogError(dbEx, "SyncEvaluationsAsync: database error for SectionId:{SectionId}", sectionId);
             throw;
         }
     }
@@ -514,11 +393,11 @@ public class BlendService : IBlendService
                 .AsNoTracking()
                 .FirstOrDefaultAsync(b => b.BlendId == blendId && b.IsActive);
 
-        if (blend == null)
-        {
-            _logger.LogWarning("GetBlendForEditAsync: blend {BlendId} not found", blendId);
-            throw new NotFoundException($"Blend with ID {blendId} not found.");
-        }
+            if (blend == null)
+            {
+                _logger.LogWarning("GetBlendForEditAsync: blend {BlendId} not found", blendId);
+                throw new NotFoundException($"Blend with ID {blendId} not found.");
+            }
 
             var sections = await _context.SectionRecords
                 .AsNoTracking()
@@ -593,6 +472,8 @@ public class BlendService : IBlendService
 
         _logger.LogInformation("AddIngredientAsync called for SectionId:{SectionId} by User:{UserId}", dto.SectionId, _currentUser.UserId);
 
+        EnsureParentStubsExist(dto.SectionId, dto.SectionTitle);
+        
         try
         {
             var ingredient = new Ingredient
@@ -640,6 +521,9 @@ public class BlendService : IBlendService
         try
         {
             _logger.LogInformation("UpdateIngredientAsync called for IngredientId:{IngredientId} by User:{UserId}", ingredientId, _currentUser.UserId);
+
+            EnsureParentStubsExist(dto.SectionId, dto.SectionTitle, dto.BlendId, dto.BlendCode);
+
             var ingredient = await _context.Ingredients
                 .FirstOrDefaultAsync(i => i.SectionIngredientId == ingredientId && i.IsActive);
 
@@ -703,6 +587,9 @@ public class BlendService : IBlendService
         try
         {
             _logger.LogInformation("UpdatePreparationMethodAsync called for PrepId:{PrepId} by User:{UserId}", prepId, _currentUser.UserId);
+
+            EnsureParentStubsExist(dto.SectionId, dto.SectionTitle, dto.BlendId, dto.BlendCode);
+
             var prep = await _context.PreparationMethods
                 .FirstOrDefaultAsync(p => p.PreparationId == prepId && p.IsActive);
 
@@ -744,6 +631,9 @@ public class BlendService : IBlendService
         try
         {
             _logger.LogInformation("AddEvaluation called for SectionId={SectionId} by {User}", dto.SectionId, _currentUser.UserId);
+
+            EnsureParentStubsExist(dto.SectionId, dto.SectionTitle, dto.BlendId, dto.BlendCode);
+
             var evaluation = new Evaluation
             {
             SectionId = dto.SectionId,
@@ -783,6 +673,9 @@ public class BlendService : IBlendService
         try
         {
             _logger.LogInformation("UpdateEvaluationAsync called for EvaluationId:{EvaluationId} by User:{UserId}", evaluationId, _currentUser.UserId);
+
+            EnsureParentStubsExist(dto.SectionId, dto.SectionTitle, dto.BlendId, dto.BlendCode);
+
             var evaluation = await _context.Evaluations
                 .FirstOrDefaultAsync(e => e.EvaluationId == evaluationId && e.IsActive);
 
@@ -931,6 +824,43 @@ public class BlendService : IBlendService
         {
             _logger.LogError(ex, "RejectAsync failed for BlendId:{BlendId}", blendId);
             throw;
+        }
+    }
+
+
+    private static string GetSectionTitle(SectionType sectionType) => sectionType switch
+    {
+        SectionType.Ingredient => "Ingredients",
+        SectionType.PreparationMethod => "Preparation Method",
+        SectionType.Evaluation => "Emulsifier Blend Evaluation",
+        _ => "Section"
+    };
+    private void EnsureParentStubsExist(int blendId, string? blendCode, int sectionId = 0, string? sectionTitle = null)
+    {
+        // 1. Stub Root Blend (Container) if ID provided
+        if (blendId > 0)
+        {
+            _context.AttachStubIfMissing(
+                b => b.BlendId == blendId,
+                () => new BlendRecord
+                {
+                    BlendId = blendId,
+                    Code = blendCode ?? $"Blend #{blendId}"
+                });
+        }
+
+        // 2. Stub Parent Section if ID provided
+        if (sectionId > 0)
+        {
+            _context.AttachStubIfMissing(
+                s => s.SectionId == sectionId,
+                () => new SectionRecord
+                {
+                    SectionId = sectionId,
+                    SectionTitle = sectionTitle ?? string.Empty,
+                    ContainerId = blendId,
+                    ContainerTypeId = SectionContainerType.Blend
+                });
         }
     }
 }

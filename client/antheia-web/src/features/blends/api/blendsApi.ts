@@ -18,6 +18,8 @@ export interface UpdateBlendHeaderDto {
 export interface CreateSectionPayload {
   sectionTitle: string;
   sectionTypeId: SectionType;
+  
+  blendCode: string;
 }
 // DTOs for create & update payloads
 export interface CreateIngredientPayload {
@@ -26,6 +28,10 @@ export interface CreateIngredientPayload {
   type: IngredientType;
   ratio?: number;
   quantity?: number;
+
+  SectionTitle: string;
+  BlendId: number;
+  BlendCode?: string;
 }
 
 export interface UpdateIngredientPayload {
@@ -33,6 +39,11 @@ export interface UpdateIngredientPayload {
   type: IngredientType;
   ratio?: number;
   quantity?: number;
+
+  SectionId: number;
+  SectionTitle: string;
+  BlendId: number;
+  BlendCode?: string;
 }
 
 export interface UpdatePrepMethodPayload {
@@ -40,6 +51,11 @@ export interface UpdatePrepMethodPayload {
   mixingSpeed?: string | null;
   mixingTime?: string | null;
   temperature?: string | null;
+
+  SectionId: number;
+  SectionTitle: string;
+  BlendId: number;
+  BlendCode?: string;
 }
 
 export interface CreateEvaluationPayload {
@@ -48,6 +64,10 @@ export interface CreateEvaluationPayload {
   specification: string;
   result?: string | null;
   status?: string | null;
+
+  SectionTitle: string;
+  BlendId: number;
+  BlendCode?: string;
 }
 
 export interface UpdateEvaluationPayload {
@@ -55,6 +75,11 @@ export interface UpdateEvaluationPayload {
   specification?: string;
   result?: string | null;
   status?: string | null;
+
+  SectionId: number;
+  SectionTitle: string;
+  BlendId: number;
+  BlendCode?: string;
 }
 
 export const blendsApi = {
@@ -68,7 +93,7 @@ export const blendsApi = {
     const { data } = await apiClient.post<{ blendId: number }>('/blends/draft');
     return data;
   },
-  
+
   // ==========================================
   // 1. FULL BLEND READ
   // ==========================================
