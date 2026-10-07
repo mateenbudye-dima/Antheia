@@ -52,10 +52,10 @@ export const IngredientRow: React.FC<IngredientRowProps> = ({
           type: debouncedItem.type,
           ratio: debouncedItem.ratio,
           quantity: debouncedItem.quantity,
-          SectionId: sectionId, 
-          SectionTitle: sectionTitle, 
-          BlendId: blendId,
-          BlendCode: blendCode, 
+          sectionId: sectionId, 
+          sectionTitle: sectionTitle, 
+          blendId: blendId,
+          blendCode: blendCode, 
         },
       });
     }

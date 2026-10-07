@@ -49,9 +49,9 @@ export const IngredientsSection: React.FC<Props> = ({
         type: IngredientType.Unknown,
         ratio: 0,
         quantity: 0,
-        SectionTitle: sectionTitle,
-        BlendId: blendId,
-        BlendCode: blendCode,
+        sectionTitle: sectionTitle,
+        blendId: blendId,
+        blendCode: blendCode,
       });
       setIngredients((prev) => [...prev, newIngredient]);
     } catch (err) {

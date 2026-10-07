@@ -1,23 +1,12 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Container,
   Box,
-  Button,
-  Menu,
-  MenuItem,
-  ListItemIcon,
-  ListItemText,
-  Divider,
   IconButton,
   Typography,
   Tooltip,
 } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlined';
-import ScienceIcon from '@mui/icons-material/Science'; // Ingredient
-import BlenderIcon from '@mui/icons-material/Blender'; // Preparation Method
-import FactCheckIcon from '@mui/icons-material/FactCheck'; // Evaluation Params
-
 
 import { HeaderSection } from './HeaderSection';
 import { IngredientsSection } from './IngredientsSection';
@@ -25,8 +14,7 @@ import { PrepMethodSection } from './PrepMethodSection';
 import { EvaluationSection } from './EvaluationSection';
 import { SectionType, type FullBlendResponse, type Section } from '../types/blend.types';
 import { useBlendMutations } from '../hooks/useBlendMutations';
-import type { CreateSectionPayload } from '../api/blendsApi';
-import { useConfirm } from '../../../shared/context/DialogContext'; // 👈 Global hook
+import { useConfirm } from '../../../shared/context/DialogContext';
 
 export interface BlendEditorProps {
   data: FullBlendResponse;
@@ -34,31 +22,6 @@ export interface BlendEditorProps {
   viewMode: 'split' | 'all';
   onSectionDeleted?: () => void;
 }
-interface MenuOption {
-  type: SectionType;
-  label: string;
-  icon: React.ReactNode;
-  hasDividerAfter?: boolean;
-}
-
-const SECTION_OPTIONS: MenuOption[] = [
-  {
-    type: SectionType.Ingredients,
-    label: 'Ingredients Section',
-    icon: <ScienceIcon fontSize="small" />,
-  },
-  {
-    type: SectionType.PreparationMethod,
-    label: 'Preparation Method',
-    icon: <BlenderIcon fontSize="small" />,
-    hasDividerAfter: true, // Renders the divider after this item
-  },
-  {
-    type: SectionType.Evaluation,
-    label: 'Evaluation Parameters',
-    icon: <FactCheckIcon fontSize="small" />,
-  },
-];
 
 export const BlendEditor: React.FC<BlendEditorProps> = ({
   data,
@@ -66,39 +29,9 @@ export const BlendEditor: React.FC<BlendEditorProps> = ({
   viewMode,
   onSectionDeleted,
 }) => {
-  const { addSection, deleteSection, isSaving } = useBlendMutations(data.blendId);
-  const confirm = useConfirm(); // 👈 Invoke confirmation dialog hook
+  const { deleteSection } = useBlendMutations(data.blendId);
+  const confirm = useConfirm();
 
-  // Dropdown Menu State
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const isMenuOpen = Boolean(anchorEl);
-
-  const handleOpenMenu = (event: React.MouseEvent<HTMLButtonElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleCloseMenu = () => {
-    setAnchorEl(null);
-  };
-
-  //const hasPrepMethod = data.sections?.some((sec) => sec.sectionTypeId === SectionType.PreparationMethod);
-
-  const handleAddSection = (sectionTypeId: SectionType) => {
-    handleCloseMenu();
-    const payload: CreateSectionPayload = {
-      blendCode: data.code || '',
-      sectionTypeId,
-      sectionTitle:
-        sectionTypeId === SectionType.Ingredients
-          ? 'Ingredients'
-          : sectionTypeId === SectionType.PreparationMethod
-          ? 'Preparation Method'
-          : 'Evaluation Parameters',
-    };
-    addSection(payload);
-  };
-
-  // 💥 DELETION TRIGGERED IMPERATIVELY
   const handleDeleteClick = (section: Section) => {
     confirm({
       title: 'Delete Section?',
@@ -123,7 +56,6 @@ export const BlendEditor: React.FC<BlendEditorProps> = ({
     });
   };
 
-  // Section Wrapper with Title & Delete Action
   const renderSectionWrapper = (section: Section, children: React.ReactNode) => {
     return (
       <Box key={section.sectionId} sx={{ mb: 4, position: 'relative' }}>
@@ -166,7 +98,7 @@ export const BlendEditor: React.FC<BlendEditorProps> = ({
 
   const renderSectionNode = (section: Section) => {
     switch (section.sectionTypeId) {
-      case 1:
+      case SectionType.Ingredients:
         return renderSectionWrapper(
           section,
           <IngredientsSection
@@ -178,7 +110,7 @@ export const BlendEditor: React.FC<BlendEditorProps> = ({
             initialIngredients={section.ingredients || []}
           />
         );
-      case 2:
+      case SectionType.PreparationMethod:
         return section.preparationMethod ? renderSectionWrapper(
           section,
           <PrepMethodSection
@@ -190,7 +122,7 @@ export const BlendEditor: React.FC<BlendEditorProps> = ({
             prepData={section.preparationMethod}
           />
         ) : null;
-      case 3:
+      case SectionType.Evaluation:
         return renderSectionWrapper(
           section,
           <EvaluationSection
@@ -232,38 +164,6 @@ export const BlendEditor: React.FC<BlendEditorProps> = ({
           {data.sections?.map((sec: Section) => renderSectionNode(sec))}
         </Box>
       )}
-
-      {/* Add Section Menu */}
-      <Box sx={{ mt: 4, pt: 2, borderTop: 1, borderColor: 'divider', display: 'flex', justifyContent: 'center' }}>
-        <Button
-          variant="outlined"
-          startIcon={<AddIcon />}
-          onClick={handleOpenMenu}
-          disabled={isSaving}
-          size="large"
-        >
-          {isSaving ? 'Adding Section...' : 'Add Section'}
-        </Button>
-
-        <Menu
-          anchorEl={anchorEl}
-          open={isMenuOpen}
-          onClose={handleCloseMenu}
-          transformOrigin={{ horizontal: 'center', vertical: 'top' }}
-          anchorOrigin={{ horizontal: 'center', vertical: 'bottom' }}
-        >
-          {SECTION_OPTIONS.map((option) => (
-            <React.Fragment key={option.type}>
-              <MenuItem onClick={() => handleAddSection(option.type)}>
-                <ListItemIcon>{option.icon}</ListItemIcon>
-                <ListItemText primary={option.label} />
-              </MenuItem>
-
-              {option.hasDividerAfter && <Divider />}
-            </React.Fragment>
-          ))}
-        </Menu>
-      </Box>
     </Container>
   );
 };

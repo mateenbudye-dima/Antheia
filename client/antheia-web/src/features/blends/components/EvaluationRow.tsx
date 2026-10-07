@@ -7,12 +7,15 @@ import { useBlendMutations } from '../hooks/useBlendMutations';
 
 interface EvaluationRowProps {
   blendId: number;
+  blendCode: string;
+  sectionId: number;
+  sectionTitle: string;
   item: EvaluationItem;
   onChange: (id: number, field: keyof EvaluationItem, value: string) => void;
   onDelete: (id: number) => void;
 }
 
-export const EvaluationRow: React.FC<EvaluationRowProps> = ({ blendId, item, onChange, onDelete }) => {
+export const EvaluationRow: React.FC<EvaluationRowProps> = ({ blendId, blendCode, sectionId, sectionTitle, item, onChange, onDelete }) => {
   const { updateEvaluationAsync } = useBlendMutations(blendId);
     
   useAutoSave({
@@ -26,6 +29,10 @@ export const EvaluationRow: React.FC<EvaluationRowProps> = ({ blendId, item, onC
           specification: debounced.specification,
           result: debounced.result,
           status: debounced.status,
+          blendId: blendId,
+          blendCode: blendCode,
+          sectionId: sectionId,
+          sectionTitle: sectionTitle,
         }
       });
     },

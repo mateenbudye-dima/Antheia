@@ -28,10 +28,10 @@ export const PrepMethodSection: React.FC<Props> = ({ blendId, sectionId, section
         mixingSpeed: debouncedPrep.mixingSpeed,
         mixingTime: debouncedPrep.mixingTime,
         temperature: debouncedPrep.temperature,
-        SectionId: sectionId,
-        SectionTitle: sectionTitle,
-        BlendId: blendId,
-        BlendCode: blendCode,
+        sectionId: sectionId,
+        sectionTitle: sectionTitle,
+        blendId: blendId,
+        blendCode: blendCode,
         }
       });
     },

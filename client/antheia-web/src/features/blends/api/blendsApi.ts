@@ -29,9 +29,9 @@ export interface CreateIngredientPayload {
   ratio?: number;
   quantity?: number;
 
-  SectionTitle: string;
-  BlendId: number;
-  BlendCode?: string;
+  sectionTitle: string;
+  blendId: number;
+  blendCode?: string;
 }
 
 export interface UpdateIngredientPayload {
@@ -40,10 +40,10 @@ export interface UpdateIngredientPayload {
   ratio?: number;
   quantity?: number;
 
-  SectionId: number;
-  SectionTitle: string;
-  BlendId: number;
-  BlendCode?: string;
+  sectionId: number;
+  sectionTitle: string;
+  blendId: number;
+  blendCode?: string;
 }
 
 export interface UpdatePrepMethodPayload {
@@ -52,10 +52,10 @@ export interface UpdatePrepMethodPayload {
   mixingTime?: string | null;
   temperature?: string | null;
 
-  SectionId: number;
-  SectionTitle: string;
-  BlendId: number;
-  BlendCode?: string;
+  sectionId: number;
+  sectionTitle: string;
+  blendId: number;
+  blendCode?: string;
 }
 
 export interface CreateEvaluationPayload {
@@ -65,9 +65,9 @@ export interface CreateEvaluationPayload {
   result?: string | null;
   status?: string | null;
 
-  SectionTitle: string;
-  BlendId: number;
-  BlendCode?: string;
+  sectionTitle: string;
+  blendId: number;
+  blendCode?: string;
 }
 
 export interface UpdateEvaluationPayload {
@@ -76,10 +76,10 @@ export interface UpdateEvaluationPayload {
   result?: string | null;
   status?: string | null;
 
-  SectionId: number;
-  SectionTitle: string;
-  BlendId: number;
-  BlendCode?: string;
+  sectionId: number;
+  sectionTitle: string;
+  blendId: number;
+  blendCode?: string;
 }
 
 export const blendsApi = {

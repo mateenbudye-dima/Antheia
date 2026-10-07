@@ -38,9 +38,9 @@ export const EvaluationSection: React.FC<Props> = ({
         specification: '',
         result: '',
         status: 'Pending',
-        SectionTitle: sectionTitle,
-        BlendId: blendId,
-        BlendCode: blendCode,  
+        sectionTitle: sectionTitle,
+        blendId: blendId,
+        blendCode: blendCode,  
       });
       setEvaluations((prev) => [...prev, newEvaluation]);
     } catch (err) {
@@ -73,6 +73,9 @@ export const EvaluationSection: React.FC<Props> = ({
         <EvaluationRow
           key={item.evaluationId}
           blendId={blendId}
+          blendCode={blendCode}
+          sectionId={sectionId}
+          sectionTitle={sectionTitle}
           item={item}
           onChange={updateField}
           onDelete={deleteRow}

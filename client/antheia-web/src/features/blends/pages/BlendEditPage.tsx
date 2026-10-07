@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -14,92 +14,33 @@ import {
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 import { EditorHeader } from '../components/EditorHeader';
+import { EditorToolbar } from '../components/EditorToolbar';
 import { BlendEditor } from '../components/BlendEditor';
-import { SectionTree, type SectionNode } from '../components/SectionTree';
 import { useBlend } from '../hooks/useBlend';
+import { useTreeSections } from '../hooks/useTreeSections';
+import { useBlendSidebar } from '../hooks/useBlendSidebar';
 import { BlendEditorProvider } from '../context/BlendEditorContext';
 import { useLayout } from '../../../shared/layouts/LayoutContext';
 import { useBlendEditorContext } from '../hooks/useBlendEditorContext';
-import { SectionType, type Section } from '../types/blend.types';
-import { NodeType } from '../types/editor.types';
-
-// Helper function to resolve human-readable labels for section types using NodeType enum
-const getSectionTypeLabel = (typeId: number): string => {
-  switch (typeId) {
-    case SectionType.Ingredients:
-      return 'Ingredients';
-    case SectionType.PreparationMethod:
-      return 'Preparation Method';
-    case SectionType.Evaluation:
-      return 'Evaluation Parameters';
-    default:
-      return 'Section';
-  }
-};
+import { SectionTree } from '../components/SectionTree';
 
 interface InnerProps {
   blendId: number;
 }
 
-// 1. Inner Component - Only receives and handles a guaranteed numeric blendId
 const BlendEditContentInner: React.FC<InnerProps> = ({ blendId }) => {
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-  const {
-    setCustomSidebar,
-    isSidebarCollapsed,
-    toggleSidebar,
-    toggleMobileSidebar,
-  } = useLayout();
-
-  // TanStack Query for server data (blendId is strictly number)
+  const { isSidebarCollapsed, toggleSidebar, toggleMobileSidebar } = useLayout();
   const { data, isLoading, isError, error } = useBlend(blendId);
-
-  // Reducer Context for UI state
   const { state, setSelectedSection, setViewMode } = useBlendEditorContext();
   const { selectedSectionId, viewMode } = state;
 
-  const treeSections: SectionNode[] = useMemo(() => {
-    const nodes: SectionNode[] = [
-      { id: 'header', title: 'Header & Overview', nodeType: NodeType.Header },
-    ];
+  // Custom Hooks for Data Transformation & Sidebar Operations
+  const treeSections = useTreeSections(data);
 
-    if (data?.sections && data.sections.length > 0) {
-      // Calculate counts for each section type
-      const typeCounts: Record<number, number> = {};
-      data.sections.forEach((sec: Section) => {
-        typeCounts[sec.sectionTypeId] = (typeCounts[sec.sectionTypeId] || 0) + 1;
-      });
-
-      const currentTypeIndex: Record<number, number> = {};
-
-      // Build unique node for EVERY section item
-      data.sections.forEach((sec: Section) => {
-        const baseTitle =
-          sec.sectionTitle || getSectionTypeLabel(sec.sectionTypeId);
-        const totalOfThisType = typeCounts[sec.sectionTypeId] || 0;
-
-        let title = baseTitle;
-        if (totalOfThisType > 1) {
-          currentTypeIndex[sec.sectionTypeId] =
-            (currentTypeIndex[sec.sectionTypeId] || 0) + 1;
-          title = `${baseTitle} (${currentTypeIndex[sec.sectionTypeId]})`;
-        }
-
-        nodes.push({
-          id: String(sec.sectionId),
-          title,
-          nodeType: sec.sectionTypeId,
-        });
-      });
-    }
-
-    return nodes;
-  }, [data]);
-
-  // Section Selection Callback
   const handleSelectSection = useCallback(
     (secId: string) => {
       setSelectedSection(secId);
@@ -110,30 +51,18 @@ const BlendEditContentInner: React.FC<InnerProps> = ({ blendId }) => {
     [isMobile, toggleMobileSidebar, setSelectedSection]
   );
 
-  // Inject Section Tree into Layout Sidebar
-  useEffect(() => {
-    if (viewMode === 'split') {
-      setCustomSidebar(
-        <SectionTree
-          sections={treeSections}
-          selectedSectionId={selectedSectionId}
-          onSelectSection={handleSelectSection}
-        />
-      );
-    } else {
-      setCustomSidebar(null);
-    }
+  const sidebarContent = useMemo(
+    () => (
+      <SectionTree
+        sections={treeSections}
+        selectedSectionId={selectedSectionId}
+        onSelectSection={handleSelectSection}
+      />
+    ),
+    [treeSections, selectedSectionId, handleSelectSection]
+  );
 
-    return () => {
-      setCustomSidebar(null);
-    };
-  }, [
-    viewMode,
-    treeSections,
-    selectedSectionId,
-    setCustomSidebar,
-    handleSelectSection,
-  ]);
+  useBlendSidebar(viewMode, sidebarContent);
 
   const handleToggleClick = () => {
     if (isMobile) {
@@ -141,6 +70,11 @@ const BlendEditContentInner: React.FC<InnerProps> = ({ blendId }) => {
     } else {
       toggleSidebar();
     }
+  };
+
+  const handleSendForApproval = () => {
+    // TODO: Connect send for approval handler/mutation
+    console.log('Sending blend for approval:', blendId);
   };
 
   if (isLoading) {
@@ -154,9 +88,7 @@ const BlendEditContentInner: React.FC<InnerProps> = ({ blendId }) => {
   if (isError || !data) {
     return (
       <Container maxWidth="md" sx={{ py: 3 }}>
-        <Alert severity="error">
-          {error?.message || 'Blend not found'}
-        </Alert>
+        <Alert severity="error">{error?.message || 'Blend not found'}</Alert>
         <Button
           startIcon={<ArrowBackIcon />}
           onClick={() => navigate('/blends')}
@@ -178,7 +110,7 @@ const BlendEditContentInner: React.FC<InnerProps> = ({ blendId }) => {
         overflow: 'hidden',
       }}
     >
-      {/* Sticky Header Box */}
+      {/* Sticky Top Region (Header + Actions Toolbar) */}
       <Box
         sx={{
           position: 'sticky',
@@ -201,9 +133,15 @@ const BlendEditContentInner: React.FC<InnerProps> = ({ blendId }) => {
           onBack={() => navigate('/blends')}
           onViewModeChange={(_e, newMode) => newMode && setViewMode(newMode)}
         />
+
+        <EditorToolbar
+          blendId={blendId}
+          blendCode={data.code || ''}
+          onSendForApproval={handleSendForApproval}
+        />
       </Box>
 
-      {/* Independently Scrollable Editor Box */}
+      {/* Independently Scrollable Editor Content */}
       <Box
         sx={{
           flexGrow: 1,
@@ -222,12 +160,11 @@ const BlendEditContentInner: React.FC<InnerProps> = ({ blendId }) => {
   );
 };
 
-// 2. Main Outer Component - Handles URL param parsing and invalid ID state
+// Route Parameter Validation Wrapper
 const BlendEditContent: React.FC = () => {
   const { id: rawId } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  // Validate and parse route parameter upfront
   const blendId = rawId ? parseInt(rawId, 10) : NaN;
   const isValidId = !isNaN(blendId) && blendId > 0;
 
@@ -256,7 +193,6 @@ const BlendEditContent: React.FC = () => {
   return <BlendEditContentInner blendId={blendId} />;
 };
 
-// Wrapper ensuring the provider is scoped specifically to this page
 export const BlendEditPage: React.FC = () => (
   <BlendEditorProvider>
     <BlendEditContent />
