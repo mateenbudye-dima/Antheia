@@ -19,10 +19,16 @@ import {
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import EditIcon from '@mui/icons-material/Edit';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 import { useCreateBlendDraft, useBlends } from '../hooks/useBlends';
+import { BLEND_STATUS_LABELS, BlendStatus } from '../types/blend.types';
+import { useAuth } from '../../auth/hooks/useAuth';
 
 export const BlendListPage: React.FC = () => {
   const navigate = useNavigate();
+
+  const { user } = useAuth();
 
   // 1. TanStack Query for reading blend list
   const { data: blends = [], isLoading, isError, error } = useBlends();
@@ -58,6 +64,22 @@ export const BlendListPage: React.FC = () => {
     return 'An unexpected error occurred.';
   };
 
+  const getStatusColor = (status: BlendStatus): 'default' | 'info' | 'primary' | 'warning' | 'success' | 'error' => {
+    switch (status) {
+      case BlendStatus.Approved:
+      case BlendStatus.Reviewed:
+        return 'success';
+      case BlendStatus.SubmittedForReview:
+      case BlendStatus.SubmittedForApproval:
+        return 'info';
+      case BlendStatus.Rejected:
+        return 'error';
+      case BlendStatus.Draft:
+      default:
+        return 'warning';
+    }
+  };
+
   // Loading skeleton state
   if (isLoading) {
     return (
@@ -72,7 +94,7 @@ export const BlendListPage: React.FC = () => {
       </Container>
     );
   }
-
+ 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       {/* Header Section */}
@@ -137,7 +159,10 @@ export const BlendListPage: React.FC = () => {
         </Paper>
       ) : (
         <Grid container spacing={3}>
-          {blends.map((blend) => (
+          {blends.map((blend) => {
+            const isOwner = user?.userId === blend.createdBy;
+            const isEditable = isOwner && (blend.status === BlendStatus.Draft);
+            return (
             <Grid size={{ xs: 12, sm: 6, md: 4 }} key={blend.blendId}>
               <Card
                 variant="outlined"
@@ -170,8 +195,8 @@ export const BlendListPage: React.FC = () => {
                       {blend.code || 'Untitled Blend'} - Trial {blend.trialNumber || 'N/A'}
                     </Typography>
                     <Chip
-                      label={blend.isPublished ? 'Published' : 'Draft'}
-                      color={blend.isPublished ? 'success' : 'warning'}
+                      label={blend?.status !== undefined ? BLEND_STATUS_LABELS[blend.status as BlendStatus] : 'Draft'}
+                      color={getStatusColor(blend.status as BlendStatus)}
                       size="small"
                       variant="outlined"
                       sx={{ fontWeight: 'bold' }}
@@ -212,18 +237,24 @@ export const BlendListPage: React.FC = () => {
                     {new Date(blend.updatedDate).toLocaleDateString()}
                   </Typography>
                   <Button
-                    size="small"
-                    endIcon={<ArrowForwardIcon />}
-                    onClick={() =>
-                      navigate(`/blends/${blend.blendId}/edit`)
-                    }
-                  >
-                    Edit Blend
+                      size="small"
+                      startIcon={isEditable ? <EditIcon fontSize="small" /> : <VisibilityIcon fontSize="small" />}
+                      endIcon={<ArrowForwardIcon />}
+                      color={isEditable ? 'primary' : 'secondary'}
+                      onClick={() =>
+                        navigate(
+                          isEditable
+                            ? `/blends/${blend.blendId}/edit`
+                            : `/blends/${blend.blendId}/details`
+                        )
+                      }
+                    >
+                      {isEditable ? 'Edit Blend' : 'View Blend'}
                   </Button>
                 </CardActions>
               </Card>
             </Grid>
-          ))}
+          )})}
         </Grid>
       )}
     </Container>

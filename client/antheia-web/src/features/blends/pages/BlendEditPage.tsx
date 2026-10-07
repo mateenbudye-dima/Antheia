@@ -137,7 +137,7 @@ const BlendEditContentInner: React.FC<InnerProps> = ({ blendId }) => {
         <EditorToolbar
           blendId={blendId}
           blendCode={data.code || ''}
-          onSendForApproval={handleSendForApproval}
+          onActionSuccess={handleSendForApproval}
         />
       </Box>
 

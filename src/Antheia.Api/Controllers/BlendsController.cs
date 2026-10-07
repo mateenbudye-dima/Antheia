@@ -270,7 +270,6 @@ public class BlendsController : ControllerBase
     /// </summary>
     /// <param name="id">The target blend ID.</param>
     [HttpPost("{id:int}/submit-for-approval")]
-    [AuditWorkflow("Blend", requiredApprovalRole: "BlendApprover")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> SubmitForApproval([FromRoute] int id)

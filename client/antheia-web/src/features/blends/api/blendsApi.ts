@@ -1,5 +1,7 @@
 import apiClient from "../../../shared/api/apiClient";
-import type { EvaluationItem, FullBlendResponse, Ingredient, IngredientType, PreparationMethod, SectionType } from "../types/blend.types";
+import type { BlendStatus, EvaluationItem, FullBlendResponse, Ingredient, IngredientType, PreparationMethod, SectionType } from "../types/blend.types";
+
+
 
 export interface BlendItem {
   blendId: number;
@@ -7,7 +9,9 @@ export interface BlendItem {
   trialNumber?: string | null;
   objective: string | null;
   updatedDate: string;
+  status: BlendStatus | null;
   isPublished: boolean | null;
+  createdBy: string;
 }
 export interface UpdateBlendHeaderDto {
   code: string;
@@ -155,5 +159,29 @@ export const blendsApi = {
 
   deleteEvaluation: async (evaluationId: number): Promise<void> => {
     await apiClient.delete(`/blends/evaluations/${evaluationId}`);
+  },
+
+  submitBlendForReview : async (id: number): Promise<{ message: string }> => {
+    const response = await apiClient.post(`/blends/${id}/submit-for-review`);
+    return response.data;
+  },
+
+  submitBlendForApproval : async (id: number): Promise<{ message: string }> => {
+    const response = await apiClient.post(`/blends/${id}/submit-for-approval`);
+    return response.data;
+  },
+
+  reviewBlend : async (id: number, comments: string): Promise<{ message: string }> => {
+    const response = await apiClient.post(`/blends/${id}/review`, JSON.stringify(comments), {
+      headers: { 'Content-Type': 'application/json' },
+    });
+    return response.data;
+  },
+
+  approveBlend : async (id: number, comments: string): Promise<{ message: string }> => {
+    const response = await apiClient.post(`/blends/${id}/approve`, JSON.stringify(comments), {
+      headers: { 'Content-Type': 'application/json' },
+    });
+    return response.data;
   },
 };

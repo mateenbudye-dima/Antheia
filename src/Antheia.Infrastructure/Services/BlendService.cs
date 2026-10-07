@@ -368,7 +368,9 @@ public class BlendService : IBlendService
                     b.TrialNumber,
                     b.Objective,
                     b.UpdatedDate,
-                    b.IsPublished
+                    b.IsPublished,
+                    b.Status?? BlendStatus.Draft,
+                    b.CreatedBy
                 ))
                 .ToListAsync();
 

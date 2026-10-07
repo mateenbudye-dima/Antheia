@@ -49,5 +49,7 @@ public record BlendListItemDto(
     string? TrialNumber,
     string? Objective,
     DateTime UpdatedDate,
-    bool? IsPublished
+    bool? IsPublished,
+    BlendStatus Status,
+    Guid CreatedBy
 );

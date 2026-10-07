@@ -1,3 +1,23 @@
+export const BlendStatus = {
+  Draft: 0,
+  SubmittedForReview: 1,
+  Reviewed: 2,
+  SubmittedForApproval: 3,
+  Approved: 4,
+  Rejected: 5,
+} as const;
+
+export type BlendStatus = typeof BlendStatus[keyof typeof BlendStatus];
+
+export const BLEND_STATUS_LABELS: Record<BlendStatus, string> = {
+  [BlendStatus.Draft]: 'Draft',
+  [BlendStatus.SubmittedForReview]: 'In Review',
+  [BlendStatus.Reviewed]: 'Reviewed',
+  [BlendStatus.SubmittedForApproval]: 'In Approval',
+  [BlendStatus.Approved]: 'Approved',
+  [BlendStatus.Rejected]: 'Rejected',
+};
+
 export const SectionType = {
   Ingredients: 1,
   PreparationMethod: 2,
