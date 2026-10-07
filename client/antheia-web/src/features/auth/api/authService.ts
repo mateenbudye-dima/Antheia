@@ -1,18 +1,6 @@
 import apiClient from '../../../shared/api/apiClient';
 import { setToken, removeToken } from '../../../utils/token';
-
-export interface LoginRequest {
-  username: string;
-  password: string;
-}
-
-export interface AuthResponse {
-  token: string;
-  username: string;
-  userId: string;
-  roles: string[];
-  expiresAt: string;
-}
+import { type LoginRequest, type AuthResponse } from '../types/auth';
 
 export const login = async (credentials: LoginRequest): Promise<AuthResponse> => {
   const response = await apiClient.post<AuthResponse>('/auth/login', credentials);
