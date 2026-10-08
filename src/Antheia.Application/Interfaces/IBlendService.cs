@@ -12,7 +12,12 @@ public interface IBlendService
     Task<bool> UpdateHeaderAsync(int blendId, UpdateBlendHeaderDto dto);
     Task<int> AddSectionAsync(int blendId, AddSectionDto dto);
     Task<bool> DeleteSectionAsync(int sectionId);
-    Task<List<BlendListItemDto>> GetBlendListAsync();
+    Task<PagedBlendListDto> GetBlendListAsync(
+        string? search,
+        BlendStatus[]? statuses,
+        bool? isPublished,
+        int page,
+        int pageSize);
     Task<GetBlendForEditDto?> GetBlendForEditAsync(int blendId);
 
     // Ingredients

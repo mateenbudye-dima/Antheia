@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { isAxiosError } from 'axios';
 import {
@@ -9,6 +9,7 @@ import {
   Chip,
   Alert,
   CircularProgress,
+  TablePagination,
   Tooltip,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
@@ -19,13 +20,35 @@ import { BLEND_STATUS_LABELS, BlendStatus, getStatusColor } from '../types/blend
 import { useAuth } from '../../auth/hooks/useAuth';
 import { DataTable, type Column } from '../../../shared/components/DataTable';
 import type { BlendItem } from '../api/blendsApi';
+import { BlendListToolbar, type PublicationFilter } from '../components/BlendListToolbar';
+import { useDebounce } from '../../../shared/hooks/useDebounce';
 
 export const BlendListPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  // 1. TanStack Query for reading blend list
-  const { data: blends = [], isLoading, isError, error } = useBlends();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedStatuses, setSelectedStatuses] = useState<BlendStatus[]>([]);
+  const [publicationFilter, setPublicationFilter] = useState<PublicationFilter>('all');
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
+  const debouncedSearchQuery = useDebounce(searchQuery.trim(), 350);
+  const filters = useMemo(
+    () => ({
+      search: debouncedSearchQuery || undefined,
+      statuses: selectedStatuses.length > 0 ? [...selectedStatuses].sort((a, b) => a - b) : undefined,
+      isPublished:
+        publicationFilter === 'all' ? undefined : publicationFilter === 'published',
+      page: page + 1,
+      pageSize,
+    }),
+    [debouncedSearchQuery, selectedStatuses, publicationFilter, page, pageSize]
+  );
+
+  // Fetch only the blends matching the current server-side filters.
+  const { data, isLoading, isError, error } = useBlends(filters);
+  const blends = data?.items ?? [];
+  const totalCount = data?.totalCount ?? 0;
 
   // 2. TanStack Mutation for creating new blend draft
   const { mutate: createDraft, isPending: isCreating } = useCreateBlendDraft();
@@ -156,29 +179,39 @@ export const BlendListPage: React.FC = () => {
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
-      {/* Header Section */}
       <Box
         sx={{
           display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          mb: 4,
-          flexWrap: 'wrap',
+          flexDirection: { xs: 'column', sm: 'row' },
+          alignItems: 'flex-start',
           gap: 2,
+          mb: 2,
         }}
       >
-        <Box>
-          <Typography
-            variant="h4"
-            component="h1"
-            sx={{ fontWeight: 'bold' }}
-            gutterBottom
-          >
-            Blends
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Manage and edit your platform product blend specifications.
-          </Typography>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <BlendListToolbar
+            searchQuery={searchQuery}
+            selectedStatuses={selectedStatuses}
+            publicationFilter={publicationFilter}
+            onSearchChange={(value) => {
+              setSearchQuery(value);
+              setPage(0);
+            }}
+            onStatusesChange={(value) => {
+              setSelectedStatuses(value);
+              setPage(0);
+            }}
+            onPublicationFilterChange={(value) => {
+              setPublicationFilter(value);
+              setPage(0);
+            }}
+            onClearAll={() => {
+              setSearchQuery('');
+              setSelectedStatuses([]);
+              setPublicationFilter('all');
+              setPage(0);
+            }}
+          />
         </Box>
         <Button
           variant="contained"
@@ -188,6 +221,7 @@ export const BlendListPage: React.FC = () => {
           onClick={handleCreateNewBlend}
           disabled={isCreating}
           size="large"
+          sx={{ flexShrink: 0 }}
         >
           {isCreating ? 'Initializing Draft...' : 'Create New Blend'}
         </Button>
@@ -208,9 +242,25 @@ export const BlendListPage: React.FC = () => {
         getRowKey={(blend) => blend.blendId}
         emptyMessage={
           <Typography color="text.secondary">
-            No blends found. Click <strong>"+ Create New Blend"</strong> to start a new draft.
+            {searchQuery.trim() || selectedStatuses.length > 0 || publicationFilter !== 'all'
+              ? 'No blends match your search or filters. Clear them to see all blends.'
+              : <>No blends found. Click <strong>"+ Create New Blend"</strong> to start a new draft.</>}
           </Typography>
         }
+      />
+      <TablePagination
+        component="div"
+        count={totalCount}
+        page={page}
+        onPageChange={(_, nextPage) => setPage(nextPage)}
+        rowsPerPage={pageSize}
+        onRowsPerPageChange={(event) => {
+          setPageSize(Number(event.target.value));
+          setPage(0);
+        }}
+        rowsPerPageOptions={[10, 25, 50]}
+        labelRowsPerPage="Blends per page:"
+        sx={{ borderTop: 1, borderColor: 'divider' }}
       />
     </Container>
   );

@@ -53,3 +53,10 @@ public record BlendListItemDto(
     BlendStatus Status,
     Guid CreatedBy
 );
+
+public record PagedBlendListDto(
+    List<BlendListItemDto> Items,
+    int TotalCount,
+    int Page,
+    int PageSize
+);

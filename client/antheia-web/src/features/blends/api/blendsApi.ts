@@ -13,6 +13,22 @@ export interface BlendItem {
   isPublished: boolean | null;
   createdBy: string;
 }
+
+export interface BlendListFilters {
+  search?: string;
+  statuses?: BlendStatus[];
+  isPublished?: boolean;
+  page: number;
+  pageSize: number;
+}
+
+export interface PagedBlendList {
+  items: BlendItem[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+}
+
 export interface UpdateBlendHeaderDto {
   code: string;
   objective: string;
@@ -88,8 +104,17 @@ export interface UpdateEvaluationPayload {
 
 export const blendsApi = {
     
-  getBlends: async (): Promise<BlendItem[]> => {
-    const { data } = await apiClient.get<BlendItem[]>('/blends');
+  getBlends: async (filters: BlendListFilters): Promise<PagedBlendList> => {
+    const params = new URLSearchParams();
+    if (filters.search) params.set('search', filters.search);
+    filters.statuses?.forEach((status) => params.append('statuses', String(status)));
+    if (filters.isPublished !== undefined) {
+      params.set('isPublished', String(filters.isPublished));
+    }
+    params.set('page', String(filters.page));
+    params.set('pageSize', String(filters.pageSize));
+
+    const { data } = await apiClient.get<PagedBlendList>('/blends', { params });
     return data;
   },
 

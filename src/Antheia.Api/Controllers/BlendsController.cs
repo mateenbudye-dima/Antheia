@@ -30,10 +30,15 @@ public class BlendsController : ControllerBase
     /// Retrieves a list of all blends.
     /// </summary>
     [HttpGet]
-    [ProducesResponseType(typeof(IEnumerable<BlendListItemDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetBlends()
+    [ProducesResponseType(typeof(PagedBlendListDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetBlends(
+        [FromQuery] string? search,
+        [FromQuery] BlendStatus[]? statuses,
+        [FromQuery] bool? isPublished,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10)
     {
-        var list = await _blendService.GetBlendListAsync();
+        var list = await _blendService.GetBlendListAsync(search, statuses, isPublished, page, pageSize);
         return Ok(list);
     }
 

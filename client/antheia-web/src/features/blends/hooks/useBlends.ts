@@ -2,12 +2,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { blendsApi } from '../api/blendsApi';
 import { blendKeys } from '../api/blendKeys';
+import type { BlendListFilters } from '../api/blendsApi';
 
 // Hook 1: Fetch list of blends
-export const useBlends = () => {
+export const useBlends = (filters: BlendListFilters) => {
   return useQuery({
-    queryKey: blendKeys.lists(),
-    queryFn: blendsApi.getBlends,
+    queryKey: blendKeys.lists(filters),
+    queryFn: () => blendsApi.getBlends(filters),
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 };

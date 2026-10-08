@@ -1,6 +1,9 @@
+import type { BlendListFilters } from './blendsApi';
+
 export const blendKeys = {
   all: ['blends'] as const,
-  lists: () => [...blendKeys.all, 'list'] as const,
+  lists: (filters?: BlendListFilters) =>
+    filters ? [...blendKeys.all, 'list', filters] as const : [...blendKeys.all, 'list'] as const,
   detail: (id: number) => [...blendKeys.all, 'detail', id] as const,
 
   // Mutation keys

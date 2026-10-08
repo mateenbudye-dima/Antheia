@@ -354,15 +354,49 @@ public class BlendService : IBlendService
         }
     }
 
-    public async Task<List<BlendListItemDto>> GetBlendListAsync()
+    public async Task<PagedBlendListDto> GetBlendListAsync(
+        string? search,
+        BlendStatus[]? statuses,
+        bool? isPublished,
+        int page,
+        int pageSize)
     {
         try
         {
+            page = Math.Max(page, 1);
+            pageSize = Math.Clamp(pageSize, 1, 100);
             _logger.LogInformation("GetBlends called by {User}", _currentUser.UserId);
-            var list = await _context.BlendRecords
+            var blends = _context.BlendRecords
                 .AsNoTracking()
-                .Where(b => b.OrganizationId == _currentUser.OrganizationId && b.IsActive)
+                .Where(b => b.OrganizationId == _currentUser.OrganizationId && b.IsActive);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var searchTerm = search.Trim();
+                blends = blends.Where(b =>
+                    b.Code.Contains(searchTerm) ||
+                    (b.TrialNumber != null && b.TrialNumber.Contains(searchTerm)) ||
+                    (b.Objective != null && b.Objective.Contains(searchTerm)));
+            }
+
+            if (statuses is { Length: > 0 })
+            {
+                blends = blends.Where(b => statuses.Contains(b.Status ?? BlendStatus.Draft));
+            }
+
+            if (isPublished.HasValue)
+            {
+                blends = isPublished.Value
+                    ? blends.Where(b => b.IsPublished == true)
+                    : blends.Where(b => b.IsPublished != true);
+            }
+
+            var totalCount = await blends.CountAsync();
+            var items = await blends
                 .OrderByDescending(b => b.UpdatedDate)
+                .ThenByDescending(b => b.BlendId)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .Select(b => new BlendListItemDto(
                     b.BlendId,
                     b.Code,
@@ -375,8 +409,13 @@ public class BlendService : IBlendService
                 ))
                 .ToListAsync();
 
-            _logger.LogInformation("GetBlendListAsync: returning {Count} blends for Org:{OrgId}", list.Count, _currentUser.OrganizationId);
-            return list;
+            _logger.LogInformation(
+                "GetBlendListAsync: returning {Count} of {TotalCount} blends for Org:{OrgId} on page {Page}",
+                items.Count,
+                totalCount,
+                _currentUser.OrganizationId,
+                page);
+            return new PagedBlendListDto(items, totalCount, page, pageSize);
         }
         catch (DbUpdateException dbEx)
         {
