@@ -8,7 +8,6 @@ import {
   ListItemIcon,
   ListItemText,
   Divider,
-  Chip,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
@@ -21,7 +20,7 @@ import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutlineOutlin
 import AssignmentTurnedInIcon from '@mui/icons-material/AssignmentTurnedIn';
 import CloseIcon from '@mui/icons-material/Close';
 
-import { BLEND_STATUS_LABELS, BlendStatus, getStatusColor, SectionType } from '../types/blend.types';
+import { BlendStatus, SectionType } from '../types/blend.types';
 import { useBlendMutations } from '../hooks/useBlendMutations';
 import { useBlendWorkflowMutations } from '../hooks/useBlendWorkflowMutations';
 import type { CreateSectionPayload } from '../api/blendsApi';
@@ -303,49 +302,48 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
         )
       }
       
-
       {/* Submission Actions Dropdown */}
-      {blendStatus !== BlendStatus.Approved && isAuthor && (
+      {blendStatus !== BlendStatus.Approved && blendStatus !== BlendStatus.Rejected && isAuthor && (
         <Box>
           <Button
             size="small"
             variant="outlined"
             color="primary"
-          endIcon={<KeyboardArrowDownIcon />}
-          onClick={handleOpenSubmissionMenu}
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? 'Processing...' : 'Submit Actions'}
-        </Button>
-        <Menu
-          anchorEl={submissionAnchorEl}
-          open={Boolean(submissionAnchorEl)}
-          onClose={handleCloseSubmissionMenu}
-          transformOrigin={{ horizontal: 'left', vertical: 'top' }}
-          anchorOrigin={{ horizontal: 'left', vertical: 'bottom' }}
-        >
-          {SUBMISSION_OPTIONS.map((option) => 
-            ((option.type === 'SEND_FOR_REVIEW' && blendStatus === BlendStatus.Draft)|| 
-              (option.type === 'SEND_FOR_APPROVE'
-                 && (blendStatus === BlendStatus.Draft || blendStatus === BlendStatus.Reviewed)) ||
-              (option.type === 'SELF_REVIEW' 
-                 && (blendStatus === BlendStatus.Draft || blendStatus === BlendStatus.SubmittedForReview)) ||
-              (option.type === 'SELF_APPROVE'
-                 && (blendStatus === BlendStatus.Draft || blendStatus === BlendStatus.Reviewed || blendStatus === BlendStatus.SubmittedForApproval)) ||
-              (option.type === 'CANCEL_SUBMISSION'
-                 && (blendStatus === BlendStatus.SubmittedForReview || blendStatus === BlendStatus.SubmittedForApproval))
-              )
-            && (
-            <React.Fragment key={option.type}>
-              <MenuItem onClick={() => handleActionSelect(option.type)}>
-                <ListItemIcon>{option.icon}</ListItemIcon>
-                <ListItemText primary={option.label} />
-              </MenuItem>
-              {option.hasDividerAfter && <Divider />}
-            </React.Fragment>
-          ))}
-        </Menu>
-      </Box>
+            endIcon={<KeyboardArrowDownIcon />}
+            onClick={handleOpenSubmissionMenu}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? 'Processing...' : 'Submit Actions'}
+          </Button>
+          <Menu
+            anchorEl={submissionAnchorEl}
+            open={Boolean(submissionAnchorEl)}
+            onClose={handleCloseSubmissionMenu}
+            transformOrigin={{ horizontal: 'left', vertical: 'top' }}
+            anchorOrigin={{ horizontal: 'left', vertical: 'bottom' }}
+          >
+            {SUBMISSION_OPTIONS.map((option) => 
+              ((option.type === 'SEND_FOR_REVIEW' && blendStatus === BlendStatus.Draft)|| 
+                (option.type === 'SEND_FOR_APPROVE'
+                  && (blendStatus === BlendStatus.Draft || blendStatus === BlendStatus.Reviewed)) ||
+                (option.type === 'SELF_REVIEW' 
+                  && (blendStatus === BlendStatus.Draft || blendStatus === BlendStatus.SubmittedForReview)) ||
+                (option.type === 'SELF_APPROVE'
+                  && (blendStatus === BlendStatus.Draft || blendStatus === BlendStatus.Reviewed || blendStatus === BlendStatus.SubmittedForApproval)) ||
+                (option.type === 'CANCEL_SUBMISSION'
+                  && (blendStatus === BlendStatus.SubmittedForReview || blendStatus === BlendStatus.SubmittedForApproval))
+                )
+              && (
+              <React.Fragment key={option.type}>
+                <MenuItem onClick={() => handleActionSelect(option.type)}>
+                  <ListItemIcon>{option.icon}</ListItemIcon>
+                  <ListItemText primary={option.label} />
+                </MenuItem>
+                {option.hasDividerAfter && <Divider />}
+              </React.Fragment>
+            ))}
+          </Menu>
+        </Box>
       )}
 
       {/* Decision Actions Dropdown */}
@@ -386,14 +384,6 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
           </Menu>
         </Box>
       )}
-      
-      <Chip
-        label={blendStatus !== undefined ? BLEND_STATUS_LABELS[blendStatus] : 'Draft'}
-        color={getStatusColor(blendStatus)}
-        size="small"
-        variant="outlined"
-        sx={{ fontWeight: 'bold', ml: 'auto' }}
-      />
 
       {/* Comment Modal for Self Review / Self Approve */}
       <CommentDialog

@@ -1,21 +1,22 @@
 import React from 'react';
 import {
   Box,
-  Button,
   Typography,
   Tooltip,
   ToggleButton,
   ToggleButtonGroup,
+  Chip,
 } from '@mui/material';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ViewListIcon from '@mui/icons-material/ViewList';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import { StatusBadge } from '../../../shared/components/StatusBadge';
 import { useBlendMutations } from '../hooks/useBlendMutations';
+import { BLEND_STATUS_LABELS, BlendStatus, getStatusColor } from '../types/blend.types';
 
 export interface EditorHeaderProps {
   code?: string;
   blendId: number;
+  blendStatus: BlendStatus;
   readOnly?: boolean;
   viewMode: 'split' | 'all';
   isMobile: boolean;
@@ -31,9 +32,9 @@ export interface EditorHeaderProps {
 export const EditorHeader: React.FC<EditorHeaderProps> = ({
   code,
   blendId,
+  blendStatus,
   readOnly = false,
   viewMode,
-  onBack,
   onViewModeChange,
 }) => {
   // Read aggregated saveStatus across ALL header/ingredient/prep/eval mutations
@@ -49,12 +50,6 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
         gap: 2,
       }}
     >
-      {/* Left: Section Tree Menu Toggle + Back Button */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <Button startIcon={<ArrowBackIcon />} onClick={onBack} size="small">
-          Back to Blends
-        </Button>
-      </Box>
 
       {/* Center: Code + Global Status Badge */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
@@ -65,6 +60,15 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
         </Typography>
         {!readOnly && <StatusBadge status={saveStatus} />}
       </Box>
+
+      {/* Blend Status */}
+      <Chip
+        label={blendStatus !== undefined ? BLEND_STATUS_LABELS[blendStatus] : 'Draft'}
+        color={getStatusColor(blendStatus as BlendStatus)}
+        size="small"
+        variant="outlined"
+        sx={{ fontWeight: 'bold', ml: 'auto' }}
+      />
 
       {/* Right: View Mode Toggle */}
       <ToggleButtonGroup

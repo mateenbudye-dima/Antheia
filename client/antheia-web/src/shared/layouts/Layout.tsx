@@ -19,6 +19,7 @@ import {
   Avatar,
   useTheme,
   Tooltip,
+  Link,
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import DashboardIcon from '@mui/icons-material/Dashboard';
@@ -52,11 +53,8 @@ export const Layout: React.FC = () => {
   { text: 'Stability', path: '/stability', icon: <MonitorHeartIcon /> },
 ];
 
-  const getCurrentTitle = () => {
-    const currentItem = navItems.find((item) =>
-      location.pathname.startsWith(item.path)
-    );
-    return currentItem ? currentItem.text : 'Antheia';
+  const getCurrentNavItem = () => {
+    return navItems.find((item) => location.pathname.startsWith(item.path));
   };
 
   const isSelected = (path: string) => location.pathname.startsWith(path);
@@ -132,7 +130,22 @@ export const Layout: React.FC = () => {
           </IconButton>
 
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            {getCurrentTitle()}
+            {(() => {
+              const currentItem = getCurrentNavItem();
+              if (currentItem) {
+                return (
+                  <Link
+                    underline="hover"
+                    color="inherit"
+                    onClick={() => navigate(currentItem.path)}
+                    sx={{ cursor: 'pointer' }}
+                  >
+                    {currentItem.text}
+                  </Link>
+                );
+              }
+              return 'Antheia';
+            })()}
           </Typography>
 
           {user && (

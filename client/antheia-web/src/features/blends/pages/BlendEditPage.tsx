@@ -153,6 +153,7 @@ const BlendEditContentInner: React.FC<InnerProps> = ({ blendId, readOnly }) => {
         <EditorHeader
           code={data.code}
           blendId={blendId}
+          blendStatus={data.status as BlendStatus}
           readOnly={readOnly}
           viewMode={viewMode}
           isMobile={isMobile}
