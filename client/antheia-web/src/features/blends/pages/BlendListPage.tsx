@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { isAxiosError } from 'axios';
 import {
@@ -6,28 +6,22 @@ import {
   Container,
   Typography,
   Button,
-  Card,
-  CardContent,
-  CardActions,
   Chip,
-  Grid,
   Alert,
-  Skeleton,
-  Paper,
-  Stack,
   CircularProgress,
+  Tooltip,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import EditIcon from '@mui/icons-material/Edit';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import { useCreateBlendDraft, useBlends } from '../hooks/useBlends';
 import { BLEND_STATUS_LABELS, BlendStatus, getStatusColor } from '../types/blend.types';
 import { useAuth } from '../../auth/hooks/useAuth';
+import { DataTable, type Column } from '../../../shared/components/DataTable';
+import type { BlendItem } from '../api/blendsApi';
 
 export const BlendListPage: React.FC = () => {
   const navigate = useNavigate();
-
   const { user } = useAuth();
 
   // 1. TanStack Query for reading blend list
@@ -64,21 +58,102 @@ export const BlendListPage: React.FC = () => {
     return 'An unexpected error occurred.';
   };
 
-  // Loading skeleton state
-  if (isLoading) {
-    return (
-      <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Grid container spacing={3}>
-          {[1, 2, 3].map((key) => (
-            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={key}>
-              <Skeleton variant="rounded" height={180} />
-            </Grid>
-          ))}
-        </Grid>
-      </Container>
-    );
-  }
- 
+  // Table Columns Definition
+  const columns: Column<BlendItem>[] = useMemo(
+    () => [
+      {
+        key: 'code',
+        label: 'Blend Code',
+        render: (blend) => (
+          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+            {blend.code || 'Untitled Blend'}
+          </Typography>
+        ),
+      },
+      {
+        key: 'trialNumber',
+        label: 'Trial',
+        render: (blend) => blend.trialNumber ?? 'N/A',
+      },
+      {
+        key: 'status',
+        label: 'Status',
+        render: (blend) => (
+          <Chip
+            label={
+              blend?.status !== undefined
+                ? BLEND_STATUS_LABELS[blend.status as BlendStatus]
+                : 'Draft'
+            }
+            color={getStatusColor(blend.status as BlendStatus)}
+            size="small"
+            variant="outlined"
+            sx={{ fontWeight: 'bold' }}
+          />
+        ),
+      },
+      {
+        key: 'objective',
+        label: 'Objective',
+        render: (blend) => (
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{
+              maxWidth: 300,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
+          >
+            {blend.objective || 'No objective provided.'}
+          </Typography>
+        ),
+      },
+      {
+        key: 'updatedDate',
+        label: 'Updated Date',
+        render: (blend) => new Date(blend.updatedDate).toLocaleDateString(),
+      },
+      {
+        key: 'actions',
+        label: 'Actions',
+        align: 'right',
+        render: (blend) => {
+          const isOwner = user?.userId === blend.createdBy;
+          const isEditable = isOwner && blend.status === BlendStatus.Draft;
+
+          return isEditable ? (
+            <Tooltip title="Edit Blend">
+              <Button
+                variant="outlined"
+                size="small"
+                color="primary"
+                startIcon={<EditIcon />}
+                onClick={() => navigate(`/blends/${blend.blendId}/edit`)}
+              >
+                Edit
+              </Button>
+            </Tooltip>
+          ) : (
+            <Tooltip title="View Blend">
+              <Button
+                variant="outlined"
+                size="small"
+                color="secondary"
+                startIcon={<VisibilityIcon />}
+                onClick={() => navigate(`/blends/${blend.blendId}/details`)}
+              >
+                View
+              </Button>
+            </Tooltip>
+          );
+        },
+      },
+    ],
+    [user?.userId, navigate]
+  );
+
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       {/* Header Section */}
@@ -125,122 +200,18 @@ export const BlendListPage: React.FC = () => {
         </Alert>
       )}
 
-      {/* Blends Grid / Empty State */}
-      {blends.length === 0 ? (
-        <Paper
-          elevation={0}
-          sx={{
-            p: 6,
-            textAlign: 'center',
-            backgroundColor: 'action.hover',
-            borderRadius: 2,
-          }}
-        >
+      {/* Generic Display Data Table */}
+      <DataTable<BlendItem>
+        columns={columns}
+        data={blends}
+        isLoading={isLoading}
+        getRowKey={(blend) => blend.blendId}
+        emptyMessage={
           <Typography color="text.secondary">
-            No blends found. Click <strong>"+ Create New Blend"</strong> to
-            start a new draft.
+            No blends found. Click <strong>"+ Create New Blend"</strong> to start a new draft.
           </Typography>
-        </Paper>
-      ) : (
-        <Grid container spacing={3}>
-          {blends.map((blend) => {
-            const isOwner = user?.userId === blend.createdBy;
-            const isEditable = isOwner && (blend.status === BlendStatus.Draft);
-            return (
-            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={blend.blendId}>
-              <Card
-                variant="outlined"
-                sx={{
-                  height: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between',
-                  transition: 'transform 0.2s, box-shadow 0.2s',
-                  '&:hover': {
-                    boxShadow: 4,
-                  },
-                }}
-              >
-                <CardContent>
-                  <Stack
-                    direction="row"
-                    spacing={1}
-                    sx={{
-                      justifyContent: 'space-between',
-                      alignItems: 'flex-start',
-                      mb: 1.5,
-                    }}
-                  >
-                    <Typography
-                      variant="h6"
-                      component="h2"
-                      sx={{ fontSize: '1.1rem', fontWeight: '600' }}
-                    >
-                      {blend.code || 'Untitled Blend'} - Trial {blend.trialNumber || 'N/A'}
-                    </Typography>
-                    <Chip
-                      label={blend?.status !== undefined ? BLEND_STATUS_LABELS[blend.status as BlendStatus] : 'Draft'}
-                      color={getStatusColor(blend.status as BlendStatus)}
-                      size="small"
-                      variant="outlined"
-                      sx={{ fontWeight: 'bold' }}
-                    />
-                  </Stack>
-
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    sx={{
-                      minHeight: 40,
-                      display: '-webkit-box',
-                      WebkitLineClamp: 3,
-                      WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden',
-                    }}
-                  >
-                    {blend.objective || 'No objective provided.'}
-                  </Typography>
-                </CardContent>
-
-                <CardActions
-                  sx={{
-                    justifyContent: 'space-between',
-                    px: 2,
-                    pb: 2,
-                    pt: 0,
-                    borderTop: 1,
-                    borderColor: 'divider',
-                  }}
-                >
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    sx={{ flexGrow: 1 }}
-                  >
-                    Updated:{' '}
-                    {new Date(blend.updatedDate).toLocaleDateString()}
-                  </Typography>
-                  <Button
-                      size="small"
-                      startIcon={isEditable ? <EditIcon fontSize="small" /> : <VisibilityIcon fontSize="small" />}
-                      endIcon={<ArrowForwardIcon />}
-                      color={isEditable ? 'primary' : 'secondary'}
-                      onClick={() =>
-                        navigate(
-                          isEditable
-                            ? `/blends/${blend.blendId}/edit`
-                            : `/blends/${blend.blendId}/details`
-                        )
-                      }
-                    >
-                      {isEditable ? 'Edit Blend' : 'View Blend'}
-                  </Button>
-                </CardActions>
-              </Card>
-            </Grid>
-          )})}
-        </Grid>
-      )}
+        }
+      />
     </Container>
   );
 };
