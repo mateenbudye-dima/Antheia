@@ -52,7 +52,7 @@ public static class AuditDbInitializer
                     [ReviewedAtUtc] DATETIME2(7) NULL
                 );
 
-                CREATE UNIQUE NONCLUSTERED INDEX [IX_ApprovalWorkflows_EntityType_EntityId] 
+                CREATE NONCLUSTERED INDEX [IX_ApprovalWorkflows_EntityType_EntityId] 
                     ON [WorkflowAudit].[ApprovalWorkflows] ([EntityType], [EntityId]);
             END;
             """;

@@ -284,7 +284,6 @@ public class BlendsController : ControllerBase
     /// </summary>
     /// <param name="id">The target blend ID.</param>
     [HttpPost("{id:int}/submit-for-review")]
-    [AuditWorkflow("Blend", requiredApprovalRole: "BlendReviewer")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> SubmitForReview([FromRoute] int id)
@@ -300,14 +299,13 @@ public class BlendsController : ControllerBase
     /// <param name="id">The target blend ID.</param>
     /// <param name="comments">Approval comments.</param>
     [HttpPost("{id:int}/approve")]
-    [AuditWorkflow("Blend", requiredApprovalRole: "BlendApprover")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Approve([FromRoute] int id, [FromBody] string comments)
     {
         var reviewerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "Unknown";
-        await _blendService.ApproveAsync(id, comments);
+        await _blendService.ApproveAsync(id, comments, BlendStatus.SubmittedForApproval);
         return Ok(new { Message = $"Blend {id} approved successfully." });
     }
 
@@ -317,14 +315,13 @@ public class BlendsController : ControllerBase
     /// <param name="id">The target blend ID.</param>
     /// <param name="comments">Reviewer comments.</param>
     [HttpPost("{id:int}/review")]
-    [AuditWorkflow("Blend", requiredApprovalRole: "BlendReviewer")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Review([FromRoute] int id, [FromBody] string comments)
     {
         var reviewerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "Unknown";
-        await _blendService.ApproveAsync(id, comments);
+        await _blendService.ApproveAsync(id, comments, BlendStatus.SubmittedForReview);
         return Ok(new { Message = $"Blend {id} reviewed successfully." });
     }
 
@@ -334,7 +331,6 @@ public class BlendsController : ControllerBase
     /// <param name="id">The target blend ID.</param>
     /// <param name="comments">Rejection comments.</param>
     [HttpPost("{id:int}/reject")]
-    [AuditWorkflow("Blend", requiredApprovalRole: "BlendApprover")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -343,5 +339,21 @@ public class BlendsController : ControllerBase
         var reviewerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "Unknown";
         await _blendService.RejectAsync(id, comments);
         return Ok(new { Message = $"Blend {id} rejected successfully." });
+    }
+
+    /// <summary>
+    /// cancel a submitted blend.
+    /// </summary>
+    /// <param name="id">The target blend ID.</param>
+    /// <param name="comments">Cancellation comments.</param>
+    [HttpPost("{id:int}/cancel-submission")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> CancelSubmission([FromRoute] int id, [FromBody] string comments)
+    {
+        var reviewerId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "Unknown";
+        await _blendService.CancelSubmissionAsync(id, comments);
+        return Ok(new { Message = $"Blend {id} submission cancelled successfully." });
     }
 }

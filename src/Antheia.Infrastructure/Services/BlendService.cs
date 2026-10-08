@@ -5,6 +5,7 @@ using Antheia.Domain.Entities;
 using Antheia.Domain.Enums;
 using Antheia.Infrastructure.Data;
 using Antheia.Infrastructure.Extensions;
+using Dima.WorkFlowAuditMiddleware.Entities;
 using Dima.WorkFlowAuditMiddleware.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -449,6 +450,9 @@ public class BlendService : IBlendService
                 blend.Objective,
                 blend.Description,
                 blend.IsPublished,
+                blend.Status?? BlendStatus.Draft,
+                blend.CreatedBy,
+                blend.UpdatedDate,
                 sectionDtos
             )
             {
@@ -750,7 +754,9 @@ public class BlendService : IBlendService
             blend.Status = submittedFor == BlendStatus.SubmittedForApproval ? BlendStatus.SubmittedForApproval : BlendStatus.SubmittedForReview;
             await _context.SaveChangesAsync();
 
-            await _workflowService.SubmitForApprovalAsync("Blend", blendId, _currentUser.UserId);
+
+            var auditFor = submittedFor == BlendStatus.SubmittedForApproval ? SubmittedFor.Approve : SubmittedFor.Review;
+            await _workflowService.SubmitForApprovalAsync("Blend", blendId, _currentUser.UserId, auditFor);
 
             _logger.LogInformation("SubmitAsync: BlendId:{BlendId} submitted with status {Status}", blendId, blend.Status);
             return true;
@@ -766,7 +772,7 @@ public class BlendService : IBlendService
             throw;
         }
     }
-    public async Task<bool> ApproveAsync(int blendId, string? comments)
+    public async Task<bool> ApproveAsync(int blendId, string? comments, BlendStatus submittedFor)
     {
         _logger.LogInformation("ApproveAsync called for BlendId:{BlendId} by User:{UserId}", blendId, _currentUser.UserId);
         try
@@ -778,10 +784,11 @@ public class BlendService : IBlendService
                 throw new NotFoundException($"Blend with ID {blendId} not found.");
             }
 
-            blend.Status = blend.Status == BlendStatus.SubmittedForApproval ? BlendStatus.Approved : BlendStatus.SubmittedForReview;
+            blend.Status = submittedFor == BlendStatus.SubmittedForApproval ? BlendStatus.Approved : BlendStatus.Reviewed;
             await _context.SaveChangesAsync();
 
-            await _workflowService.ApproveAsync("Blend", blendId, _currentUser.UserId, comments);
+            var auditFor = submittedFor == BlendStatus.SubmittedForApproval ? SubmittedFor.Approve : SubmittedFor.Review;
+            await _workflowService.ApproveAsync("Blend", blendId, _currentUser.UserId, auditFor, comments);
 
             _logger.LogInformation("ApproveAsync: BlendId:{BlendId} workflow approve invoked", blendId);
             return true;
@@ -825,6 +832,37 @@ public class BlendService : IBlendService
         catch (Exception ex)
         {
             _logger.LogError(ex, "RejectAsync failed for BlendId:{BlendId}", blendId);
+            throw;
+        }
+    }
+    public async Task<bool> CancelSubmissionAsync(int blendId, string? comments)
+    {
+        _logger.LogInformation("CancelSubmissionAsync called for BlendId:{BlendId} by User:{UserId}", blendId, _currentUser.UserId);
+        try
+        {
+            var blend = await _context.BlendRecords.FirstOrDefaultAsync(b => b.BlendId == blendId && b.IsActive);
+            if (blend == null)
+            {
+                _logger.LogWarning("CancelSubmissionAsync: blend {BlendId} not found", blendId);
+                throw new NotFoundException($"Blend with ID {blendId} not found.");
+            }
+
+            blend.Status = BlendStatus.Draft;
+            await _context.SaveChangesAsync();
+
+            await _workflowService.CancelSubmissionAsync("Blend", blendId, _currentUser.UserId, comments);
+
+            _logger.LogInformation("CancelSubmissionAsync: BlendId:{BlendId} workflow cancel submission invoked", blendId);
+            return true;
+        }
+        catch (DbUpdateException dbEx)
+        {
+            _logger.LogError(dbEx, "CancelSubmissionAsync: DB error while cancelling submission BlendId:{BlendId}", blendId);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "CancelSubmissionAsync failed for BlendId:{BlendId}", blendId);
             throw;
         }
     }

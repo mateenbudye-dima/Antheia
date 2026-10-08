@@ -26,8 +26,7 @@ interface IngredientRowProps {
   item: Ingredient;
   onChange: (id: number, field: keyof Ingredient, value: string | number) => void;
   onDelete: (id: number) => void;
-
-  
+  readOnly?: boolean;
 }
 
 export const IngredientRow: React.FC<IngredientRowProps> = ({
@@ -38,6 +37,7 @@ export const IngredientRow: React.FC<IngredientRowProps> = ({
   item,
   onChange,
   onDelete,
+  readOnly = false,
 }) => {
   const { updateIngredientAsync } = useBlendMutations(blendId);
 
@@ -45,6 +45,8 @@ export const IngredientRow: React.FC<IngredientRowProps> = ({
     value: item,
     delay: 800,
     onSave: async (debouncedItem) => {
+      if (readOnly) return;
+
       await updateIngredientAsync({
         id: debouncedItem.sectionIngredientId,
         payload: {
@@ -75,6 +77,7 @@ export const IngredientRow: React.FC<IngredientRowProps> = ({
           size="small"
           fullWidth
           value={item.name ?? ''}
+          slotProps={{ htmlInput: { readOnly } }}
           onChange={(e) => onChange(item.sectionIngredientId, 'name', e.target.value)}
         />
       </TableCell>
@@ -82,6 +85,7 @@ export const IngredientRow: React.FC<IngredientRowProps> = ({
         <FormControl fullWidth size="small">
           <Select
             value={item.type ?? IngredientType.Unknown}
+            disabled={readOnly}
             onChange={(e) =>
               onChange(
                 item.sectionIngredientId,
@@ -104,8 +108,8 @@ export const IngredientRow: React.FC<IngredientRowProps> = ({
           type="number"
           fullWidth
           value={item.ratio ?? ''}
+          slotProps={{ htmlInput: { min: 0, step: 'any', readOnly } }}
           onKeyDown={handleNumberKeyDown}
-          slotProps={{ htmlInput: { min: 0, step: 'any' } }}
           onChange={(e) => {
             const val = e.target.value;
             onChange(
@@ -122,8 +126,8 @@ export const IngredientRow: React.FC<IngredientRowProps> = ({
           type="number"
           fullWidth
           value={item.quantity ?? ''}
+          slotProps={{ htmlInput: { min: 0, step: 'any', readOnly } }}
           onKeyDown={handleNumberKeyDown}
-          slotProps={{ htmlInput: { min: 0, step: 'any' } }}
           onChange={(e) => {
             const val = e.target.value;
             onChange(
@@ -134,7 +138,7 @@ export const IngredientRow: React.FC<IngredientRowProps> = ({
           }}
         />
       </TableCell>
-      <TableCell align="center">
+      {!readOnly && <TableCell align="center">
         <Tooltip title="Delete row">
           <IconButton
             color="error"
@@ -144,7 +148,7 @@ export const IngredientRow: React.FC<IngredientRowProps> = ({
             <DeleteIcon fontSize="small" />
           </IconButton>
         </Tooltip>
-      </TableCell>
+      </TableCell>}
     </TableRow>
   );
 };

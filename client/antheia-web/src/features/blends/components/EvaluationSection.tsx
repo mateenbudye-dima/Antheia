@@ -18,6 +18,7 @@ interface Props {
   sectionTitle: string;
   blendCode: string;
   initialEvaluations: EvaluationItem[];
+  readOnly?: boolean;
 }
 
 export const EvaluationSection: React.FC<Props> = ({
@@ -26,6 +27,7 @@ export const EvaluationSection: React.FC<Props> = ({
   initialEvaluations,
   sectionTitle,
   blendCode,
+  readOnly = false,
 }) => {
   const [evaluations, setEvaluations] = useState<EvaluationItem[]>(initialEvaluations);
   const { addEvaluationAsync, deleteEvaluationAsync } = useBlendMutations(blendId);
@@ -68,6 +70,7 @@ export const EvaluationSection: React.FC<Props> = ({
       columns={COLUMNS}
       addButtonLabel="Add Evaluation Parameter"
       onAddRow={addParam}
+      readOnly={readOnly}
     >
       {evaluations.map((item) => (
         <EvaluationRow
@@ -79,6 +82,7 @@ export const EvaluationSection: React.FC<Props> = ({
           item={item}
           onChange={updateField}
           onDelete={deleteRow}
+          readOnly={readOnly}
         />
       ))}
     </BlendSectionTable>

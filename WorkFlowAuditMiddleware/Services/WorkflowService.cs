@@ -14,13 +14,13 @@ public class WorkflowService : IWorkflowService
         _auditDbContext = auditDbContext;
     }
 
-    public async Task SubmitForApprovalAsync(string entityType, long entityId, Guid userId)
+    public async Task SubmitForApprovalAsync(string entityType, long entityId, Guid userId, SubmittedFor submittedFor)
     {
         var workflow = new ApprovalWorkflow
         {
             EntityType = entityType,
             EntityId = entityId,
-            Status = ApprovalWorkflowStatus.Pending,
+            Status = submittedFor == SubmittedFor.Approve ? ApprovalWorkflowStatus.ForApproval : ApprovalWorkflowStatus.ForReview,
             RequestedByUserId = userId,
             CreatedAtUtc = DateTime.UtcNow
         };
@@ -29,15 +29,15 @@ public class WorkflowService : IWorkflowService
         await _auditDbContext.SaveChangesAsync();
     }
 
-    public async Task ApproveAsync(string entityType, long entityId, Guid reviewerId, string? comments)
+    public async Task ApproveAsync(string entityType, long entityId, Guid reviewerId, SubmittedFor submittedFor, string? comments)
     {
         var workflow = await _auditDbContext.ApprovalWorkflows
-            .Where(w => w.EntityType == entityType && w.EntityId == entityId && w.Status == ApprovalWorkflowStatus.Pending)
+            .Where(w => w.EntityType == entityType && w.EntityId == entityId && (w.Status == ApprovalWorkflowStatus.ForReview || w.Status == ApprovalWorkflowStatus.ForApproval))
             .OrderByDescending(w => w.CreatedAtUtc)
             .FirstOrDefaultAsync()
             ?? throw new InvalidOperationException($"No active workflow found for {entityType} {entityId}");
 
-        workflow.Status = ApprovalWorkflowStatus.Approved;
+        workflow.Status = submittedFor == SubmittedFor.Approve? ApprovalWorkflowStatus.Approved: ApprovalWorkflowStatus.Reviewed;
         workflow.ReviewedByUserId = reviewerId;
         workflow.ReviewerComments = comments;
         workflow.ReviewedAtUtc = DateTime.UtcNow;
@@ -48,12 +48,28 @@ public class WorkflowService : IWorkflowService
     public async Task RejectAsync(string entityType, long entityId, Guid reviewerId, string? comments)
     {
         var workflow = await _auditDbContext.ApprovalWorkflows
-            .Where(w => w.EntityType == entityType && w.EntityId == entityId && w.Status == ApprovalWorkflowStatus.Pending)
+            .Where(w => w.EntityType == entityType && w.EntityId == entityId && (w.Status == ApprovalWorkflowStatus.ForReview || w.Status == ApprovalWorkflowStatus.ForApproval))
             .OrderByDescending(w => w.CreatedAtUtc)
             .FirstOrDefaultAsync()
             ?? throw new InvalidOperationException($"No active workflow found for {entityType} {entityId}");
 
         workflow.Status = ApprovalWorkflowStatus.Rejected;
+        workflow.ReviewedByUserId = reviewerId;
+        workflow.ReviewerComments = comments;
+        workflow.ReviewedAtUtc = DateTime.UtcNow;
+
+        await _auditDbContext.SaveChangesAsync();
+    }
+
+    public async Task CancelSubmissionAsync(string entityType, long entityId, Guid reviewerId, string? comments)
+    {
+        var workflow = await _auditDbContext.ApprovalWorkflows
+            .Where(w => w.EntityType == entityType && w.EntityId == entityId && (w.Status == ApprovalWorkflowStatus.ForReview || w.Status == ApprovalWorkflowStatus.ForApproval))
+            .OrderByDescending(w => w.CreatedAtUtc)
+            .FirstOrDefaultAsync()
+            ?? throw new InvalidOperationException($"No active workflow found for {entityType} {entityId}");
+
+        workflow.Status = ApprovalWorkflowStatus.Cancelled;
         workflow.ReviewedByUserId = reviewerId;
         workflow.ReviewerComments = comments;
         workflow.ReviewedAtUtc = DateTime.UtcNow;
@@ -136,7 +152,7 @@ public class WorkflowService : IWorkflowService
     {
         return await _auditDbContext.ApprovalWorkflows
             .AsNoTracking()
-            .Where(x => x.Status == ApprovalWorkflowStatus.Pending)
+            .Where(x => x.Status == ApprovalWorkflowStatus.ForReview || x.Status == ApprovalWorkflowStatus.ForApproval)
             .OrderByDescending(x => x.CreatedAtUtc)
             .ToListAsync();
     }

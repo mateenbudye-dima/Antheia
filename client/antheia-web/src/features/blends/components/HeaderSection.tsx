@@ -9,6 +9,7 @@ interface Props {
   initialTrialNumber?: string;
   initialObjective: string;
   initialDescription: string;
+  readOnly?: boolean;
 }
 
 export const HeaderSection: React.FC<Props> = ({
@@ -17,6 +18,7 @@ export const HeaderSection: React.FC<Props> = ({
   initialTrialNumber = '',
   initialObjective,
   initialDescription,
+  readOnly = false,
 }) => {
   const [headerData, setHeaderData] = useState({
     code: initialCode,
@@ -31,6 +33,8 @@ export const HeaderSection: React.FC<Props> = ({
     value: headerData,
     delay: 800,
     onSave: async (debounced) => {
+      if (readOnly) return;
+
       // Format payload ensuring trialNumber is sent as string or undefined
       const payload: UpdateBlendHeaderDto = {
         code: debounced.code,
@@ -77,6 +81,7 @@ export const HeaderSection: React.FC<Props> = ({
             size="small"
             fullWidth
             value={headerData.code ?? ''}
+            slotProps={{ htmlInput: { readOnly } }}
             onChange={(e) => handleChange('code', e.target.value)}
           />
         </Grid>
@@ -89,9 +94,8 @@ export const HeaderSection: React.FC<Props> = ({
             type="number"
             fullWidth
             value={headerData.trialNumber ?? ''}
-            onKeyDown={handleNumberKeyDown}
             slotProps={{
-              htmlInput: { min: 1 },
+              htmlInput: { min: 1, readOnly },
               input: {
                 startAdornment: (
                   <InputAdornment position="start">
@@ -102,6 +106,7 @@ export const HeaderSection: React.FC<Props> = ({
                 ),
               },
             }}
+            onKeyDown={handleNumberKeyDown}
             onChange={(e) => handleChange('trialNumber', e.target.value)}
           />
         </Grid>
@@ -115,6 +120,7 @@ export const HeaderSection: React.FC<Props> = ({
             multiline
             rows={2}
             value={headerData.objective ?? ''}
+            slotProps={{ htmlInput: { readOnly } }}
             onChange={(e) => handleChange('objective', e.target.value)}
           />
         </Grid>
@@ -128,6 +134,7 @@ export const HeaderSection: React.FC<Props> = ({
             multiline
             rows={2}
             value={headerData.description ?? ''}
+            slotProps={{ htmlInput: { readOnly } }}
             onChange={(e) => handleChange('description', e.target.value)}
           />
         </Grid>

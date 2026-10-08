@@ -25,7 +25,7 @@ public class AuditDbContext : DbContext
         {
             b.ToTable("ApprovalWorkflows", "WorkflowAudit");
             b.HasKey(x => x.Id);
-            b.HasIndex(x => new { x.EntityType, x.EntityId }).IsUnique();
+            b.HasIndex(x => new { x.EntityType, x.EntityId });
             b.Property(x => x.CreatedAtUtc).HasDefaultValueSql("SYSUTCDATETIME()");
         });
     }

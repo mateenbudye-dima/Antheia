@@ -25,6 +25,7 @@ interface BlendSectionTableProps {
   children: React.ReactNode; // The <TableBody> rows
   addButtonLabel: string;
   onAddRow: () => void;
+  readOnly?: boolean;
   footerNode?: React.ReactNode; // Optional footer/totals row
 }
 
@@ -33,6 +34,7 @@ export const BlendSectionTable: React.FC<BlendSectionTableProps> = ({
   children,
   addButtonLabel,
   onAddRow,
+  readOnly = false,
   footerNode,
 }) => {
   return (
@@ -57,7 +59,9 @@ export const BlendSectionTable: React.FC<BlendSectionTableProps> = ({
                 },
               }}
             >
-              {columns.map((col, idx) => (
+              {columns
+                .filter((col) => !readOnly || col.label !== 'Actions')
+                .map((col, idx) => (
                 <TableCell
                   key={idx}
                   align={col.align ?? 'left'}
@@ -88,16 +92,18 @@ export const BlendSectionTable: React.FC<BlendSectionTableProps> = ({
         </Table>
       </TableContainer>
 
-      <Box sx={{ mt: 2 }}>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={onAddRow}
-          size="small"
-        >
-          {addButtonLabel}
-        </Button>
-      </Box>
+      {!readOnly && (
+        <Box sx={{ mt: 2 }}>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={onAddRow}
+            size="small"
+          >
+            {addButtonLabel}
+          </Button>
+        </Box>
+      )}
     </Paper>
   );
 };

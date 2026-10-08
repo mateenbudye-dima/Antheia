@@ -12,6 +12,9 @@ namespace Antheia.Application.DTOs
         string? Objective,
         string? Description,
         bool? IsPublished,
+        BlendStatus Status,
+        Guid CreatedBy,
+        DateTime UpdatedDate,
         List<SectionEditDto> Sections
     );
 

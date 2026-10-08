@@ -10,9 +10,10 @@ interface Props {
   sectionTitle: string;
   blendCode: string;
   prepData: PreparationMethod;
+  readOnly?: boolean;
 }
 
-export const PrepMethodSection: React.FC<Props> = ({ blendId, sectionId, sectionTitle, blendCode, prepData }) => {
+export const PrepMethodSection: React.FC<Props> = ({ blendId, sectionId, sectionTitle, blendCode, prepData, readOnly = false }) => {
   const [prep, setPrep] = useState<PreparationMethod>(prepData);
 
   const {updatePrepMethodAsync} = useBlendMutations(blendId );
@@ -21,6 +22,8 @@ export const PrepMethodSection: React.FC<Props> = ({ blendId, sectionId, section
     value: prep,
     delay: 800,
     onSave: async (debouncedPrep) => {
+      if (readOnly) return;
+
       await updatePrepMethodAsync({
         prepId:debouncedPrep.preparationId, 
         payload:{
@@ -50,6 +53,7 @@ export const PrepMethodSection: React.FC<Props> = ({ blendId, sectionId, section
             size="small"
             fullWidth
             value={prep.additionSequence ?? ''}
+            slotProps={{ htmlInput: { readOnly } }}
             onChange={(e) => handleChange('additionSequence', e.target.value)}
           />
         </Grid>
@@ -62,6 +66,7 @@ export const PrepMethodSection: React.FC<Props> = ({ blendId, sectionId, section
             value={prep.mixingSpeed ?? ''}
             onChange={(e) => handleChange('mixingSpeed', e.target.value)}
             slotProps={{
+              htmlInput: { readOnly },
               input: {
                 endAdornment: <InputAdornment position="end">RPM</InputAdornment>,
               },
@@ -77,6 +82,7 @@ export const PrepMethodSection: React.FC<Props> = ({ blendId, sectionId, section
             value={prep.mixingTime ?? ''}
             onChange={(e) => handleChange('mixingTime', e.target.value)}
             slotProps={{
+              htmlInput: { readOnly },
               input: {
                 endAdornment: <InputAdornment position="end">Mins</InputAdornment>,
               },
@@ -92,6 +98,7 @@ export const PrepMethodSection: React.FC<Props> = ({ blendId, sectionId, section
             value={prep.temperature ?? ''}
             onChange={(e) => handleChange('temperature', e.target.value)}
             slotProps={{
+              htmlInput: { readOnly },
               input: {
                 endAdornment: <InputAdornment position="end">°C</InputAdornment>,
               },

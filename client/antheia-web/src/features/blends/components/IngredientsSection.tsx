@@ -19,6 +19,7 @@ interface Props {
   sectionId: number;
   sectionTitle: string;
   initialIngredients: Ingredient[];
+  readOnly?: boolean;
 }
 
 export const IngredientsSection: React.FC<Props> = ({
@@ -27,6 +28,7 @@ export const IngredientsSection: React.FC<Props> = ({
   sectionId,
   sectionTitle,
   initialIngredients,
+  readOnly = false,
 }) => {
   const [ingredients, setIngredients] = useState<Ingredient[]>(initialIngredients);
   const { addIngredientAsync, deleteIngredientAsync } = useBlendMutations(blendId);
@@ -81,6 +83,7 @@ export const IngredientsSection: React.FC<Props> = ({
       columns={COLUMNS}
       addButtonLabel="Add Ingredient Row"
       onAddRow={addRow}
+      readOnly={readOnly}
       footerNode={
         <>
           <TableCell colSpan={2}>
@@ -98,7 +101,7 @@ export const IngredientsSection: React.FC<Props> = ({
               {formatTotal(totals.totalQuantity)} g
             </Typography>
           </TableCell>
-          <TableCell />
+          {!readOnly && <TableCell />}
         </>
       }
     >
@@ -112,6 +115,7 @@ export const IngredientsSection: React.FC<Props> = ({
           item={item}
           onChange={updateLocalField}
           onDelete={deleteRow}
+          readOnly={readOnly}
         />
       ))}
     </BlendSectionTable>

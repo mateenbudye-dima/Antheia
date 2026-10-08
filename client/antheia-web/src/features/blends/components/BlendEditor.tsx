@@ -20,6 +20,7 @@ export interface BlendEditorProps {
   data: FullBlendResponse;
   selectedSectionId: string;
   viewMode: 'split' | 'all';
+  readOnly?: boolean;
   onSectionDeleted?: () => void;
 }
 
@@ -27,6 +28,7 @@ export const BlendEditor: React.FC<BlendEditorProps> = ({
   data,
   selectedSectionId,
   viewMode,
+  readOnly = false,
   onSectionDeleted,
 }) => {
   const { deleteSection } = useBlendMutations(data.blendId);
@@ -81,15 +83,17 @@ export const BlendEditor: React.FC<BlendEditorProps> = ({
                 ? 'Preparation Method'
                 : 'Evaluation Parameters')}
           </Typography>
-          <Tooltip title="Delete Section">
-            <IconButton
-              color="error"
-              size="small"
-              onClick={() => handleDeleteClick(section)}
-            >
-              <DeleteOutlineIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
+          {!readOnly && (
+            <Tooltip title="Delete Section">
+              <IconButton
+                color="error"
+                size="small"
+                onClick={() => handleDeleteClick(section)}
+              >
+                <DeleteOutlineIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          )}
         </Box>
         {children}
       </Box>
@@ -108,6 +112,7 @@ export const BlendEditor: React.FC<BlendEditorProps> = ({
             sectionId={section.sectionId}
             sectionTitle={section.sectionTitle || ''}
             initialIngredients={section.ingredients || []}
+            readOnly={readOnly}
           />
         );
       case SectionType.PreparationMethod:
@@ -120,6 +125,7 @@ export const BlendEditor: React.FC<BlendEditorProps> = ({
             sectionTitle={section.sectionTitle || ''}
             blendCode={data.code || ''}
             prepData={section.preparationMethod}
+            readOnly={readOnly}
           />
         ) : null;
       case SectionType.Evaluation:
@@ -132,6 +138,7 @@ export const BlendEditor: React.FC<BlendEditorProps> = ({
             sectionTitle={section.sectionTitle || ''}
             blendCode={data.code || ''}
             initialEvaluations={section.evaluations || []}
+            readOnly={readOnly}
           />
         );
       default:
@@ -146,6 +153,7 @@ export const BlendEditor: React.FC<BlendEditorProps> = ({
       initialTrialNumber={data.trialNumber || ''}
       initialObjective={data.objective || ''}
       initialDescription={data.description || ''}
+      readOnly={readOnly}
     />
   );
 

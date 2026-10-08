@@ -13,15 +13,18 @@ interface EvaluationRowProps {
   item: EvaluationItem;
   onChange: (id: number, field: keyof EvaluationItem, value: string) => void;
   onDelete: (id: number) => void;
+  readOnly?: boolean;
 }
 
-export const EvaluationRow: React.FC<EvaluationRowProps> = ({ blendId, blendCode, sectionId, sectionTitle, item, onChange, onDelete }) => {
+export const EvaluationRow: React.FC<EvaluationRowProps> = ({ blendId, blendCode, sectionId, sectionTitle, item, onChange, onDelete, readOnly = false }) => {
   const { updateEvaluationAsync } = useBlendMutations(blendId);
     
   useAutoSave({
       value: item,
       delay: 800,
       onSave: async (debounced) => {
+        if (readOnly) return;
+
         await updateEvaluationAsync({
           evaluationId:debounced.evaluationId, 
           payload: {
@@ -45,6 +48,7 @@ export const EvaluationRow: React.FC<EvaluationRowProps> = ({ blendId, blendCode
           size="small"
           fullWidth
           value={item.evaluationParameter ?? ''}
+          slotProps={{ htmlInput: { readOnly } }}
           onChange={(e) => onChange(item.evaluationId, 'evaluationParameter', e.target.value)}
         />
       </TableCell>
@@ -53,6 +57,7 @@ export const EvaluationRow: React.FC<EvaluationRowProps> = ({ blendId, blendCode
           size="small"
           fullWidth
           value={item.result ?? ''}
+          slotProps={{ htmlInput: { readOnly } }}
           onChange={(e) => onChange(item.evaluationId, 'result', e.target.value)}
         />
       </TableCell>
@@ -61,6 +66,7 @@ export const EvaluationRow: React.FC<EvaluationRowProps> = ({ blendId, blendCode
           size="small"
           fullWidth
           value={item.specification ?? ''}
+          slotProps={{ htmlInput: { readOnly } }}
           onChange={(e) => onChange(item.evaluationId, 'specification', e.target.value)}
         />
       </TableCell>
@@ -69,6 +75,7 @@ export const EvaluationRow: React.FC<EvaluationRowProps> = ({ blendId, blendCode
           size="small"
           fullWidth
           value={item.status ?? 'Pending'}
+          disabled={readOnly}
           onChange={(e) => onChange(item.evaluationId, 'status', e.target.value)}
         >
           <MenuItem value="Pending">Pending</MenuItem>
@@ -76,7 +83,7 @@ export const EvaluationRow: React.FC<EvaluationRowProps> = ({ blendId, blendCode
           <MenuItem value="Fail">Fail</MenuItem>
         </Select>
       </TableCell>
-      <TableCell align="center">
+      {!readOnly && <TableCell align="center">
         <Tooltip title="Delete parameter">
           <IconButton
             color="error"
@@ -86,7 +93,7 @@ export const EvaluationRow: React.FC<EvaluationRowProps> = ({ blendId, blendCode
             <DeleteIcon fontSize="small" />
           </IconButton>
         </Tooltip>
-      </TableCell>
+      </TableCell>}
     </TableRow>
   );
 };

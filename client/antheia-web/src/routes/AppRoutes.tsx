@@ -24,7 +24,8 @@ export const AppRoutes: React.FC = () => {
           <Route path="/blends" element={<BlendListPage />} />
 
           {/* Edit Blend Route with Dynamic ID */}
-          <Route path="/blends/:id/edit" element={<BlendEditPage />} />
+          <Route path="/blends/:id/edit" element={<BlendEditPage readOnly={false} />} />
+          <Route path="/blends/:id/details" element={<BlendEditPage readOnly={true} />} />
         </Route>
       </Route>
 

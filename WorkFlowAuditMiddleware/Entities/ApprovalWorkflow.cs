@@ -16,7 +16,16 @@ public class ApprovalWorkflow
 public enum ApprovalWorkflowStatus
 {
     Draft = 0,
-    Pending = 1,
-    Approved = 2,
-    Rejected = 5
+    ForReview = 1,
+    Reviewed = 2,
+    ForApproval = 3,
+    Approved = 4,
+    Rejected = 5,
+    Cancelled = 6,
+}
+
+public enum SubmittedFor
+{
+    Review= 1,
+    Approve =2,
 }

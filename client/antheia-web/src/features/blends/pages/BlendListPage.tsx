@@ -22,7 +22,7 @@ import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import EditIcon from '@mui/icons-material/Edit';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import { useCreateBlendDraft, useBlends } from '../hooks/useBlends';
-import { BLEND_STATUS_LABELS, BlendStatus } from '../types/blend.types';
+import { BLEND_STATUS_LABELS, BlendStatus, getStatusColor } from '../types/blend.types';
 import { useAuth } from '../../auth/hooks/useAuth';
 
 export const BlendListPage: React.FC = () => {
@@ -62,22 +62,6 @@ export const BlendListPage: React.FC = () => {
       return error.message;
     }
     return 'An unexpected error occurred.';
-  };
-
-  const getStatusColor = (status: BlendStatus): 'default' | 'info' | 'primary' | 'warning' | 'success' | 'error' => {
-    switch (status) {
-      case BlendStatus.Approved:
-      case BlendStatus.Reviewed:
-        return 'success';
-      case BlendStatus.SubmittedForReview:
-      case BlendStatus.SubmittedForApproval:
-        return 'info';
-      case BlendStatus.Rejected:
-        return 'error';
-      case BlendStatus.Draft:
-      default:
-        return 'warning';
-    }
   };
 
   // Loading skeleton state

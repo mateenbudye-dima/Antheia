@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -16,31 +16,56 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { EditorHeader } from '../components/EditorHeader';
 import { EditorToolbar } from '../components/EditorToolbar';
 import { BlendEditor } from '../components/BlendEditor';
+import { SectionTree } from '../components/SectionTree';
+
 import { useBlend } from '../hooks/useBlend';
 import { useTreeSections } from '../hooks/useTreeSections';
 import { useBlendSidebar } from '../hooks/useBlendSidebar';
+import { useBlendEditorContext } from '../hooks/useBlendEditorContext';
 import { BlendEditorProvider } from '../context/BlendEditorContext';
 import { useLayout } from '../../../shared/layouts/LayoutContext';
-import { useBlendEditorContext } from '../hooks/useBlendEditorContext';
-import { SectionTree } from '../components/SectionTree';
+import { useAuth } from '../../auth/hooks/useAuth';
+import { BlendStatus } from '../types/blend.types';
 
 interface InnerProps {
   blendId: number;
+  readOnly: boolean;
 }
 
-const BlendEditContentInner: React.FC<InnerProps> = ({ blendId }) => {
+const BlendEditContentInner: React.FC<InnerProps> = ({ blendId, readOnly }) => {
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
+  // 1. Data & Context Queries
+  const { user, isLoading: isAuthLoading } = useAuth();
+  const { data, isLoading: isBlendLoading, isError, error } = useBlend(blendId);
+  const isDataLoaded = !isAuthLoading && !isBlendLoading;
+
   const { isSidebarCollapsed, toggleSidebar, toggleMobileSidebar } = useLayout();
-  const { data, isLoading, isError, error } = useBlend(blendId);
   const { state, setSelectedSection, setViewMode } = useBlendEditorContext();
   const { selectedSectionId, viewMode } = state;
 
-  // Custom Hooks for Data Transformation & Sidebar Operations
   const treeSections = useTreeSections(data);
 
+  // 2. Authorization & Status Evaluation
+  const isAuthor = useMemo(() => {
+    if (!data?.createdBy || !user?.userId) return false;
+    return String(data.createdBy) === String(user.userId);
+  }, [data?.createdBy, user?.userId]);
+
+  const isDraft = data?.status === BlendStatus.Draft;
+  const canEdit = readOnly ? false : isAuthor && isDraft;
+
+  // 3. Authorization Redirect Effect
+  useEffect(() => {
+    // Only check redirect once ALL data (auth + blend) has finished loading
+    if (isDataLoaded && data && !readOnly && !canEdit) {
+      navigate(`/blends/${blendId}/details`, { replace: true });
+    }
+  }, [isDataLoaded, data, readOnly, canEdit, blendId, navigate]);
+
+  // 4. Sidebar Callbacks & Registration
   const handleSelectSection = useCallback(
     (secId: string) => {
       setSelectedSection(secId);
@@ -62,7 +87,8 @@ const BlendEditContentInner: React.FC<InnerProps> = ({ blendId }) => {
     [treeSections, selectedSectionId, handleSelectSection]
   );
 
-  useBlendSidebar(viewMode, sidebarContent);
+  // Sync sidebar only when data is ready
+  useBlendSidebar(isDataLoaded ? viewMode : 'all', sidebarContent);
 
   const handleToggleClick = () => {
     if (isMobile) {
@@ -73,11 +99,11 @@ const BlendEditContentInner: React.FC<InnerProps> = ({ blendId }) => {
   };
 
   const handleSendForApproval = () => {
-    // TODO: Connect send for approval handler/mutation
     console.log('Sending blend for approval:', blendId);
   };
 
-  if (isLoading) {
+  // 5. Early Return Guards (Loading & Error States)
+  if (!isDataLoaded || (!readOnly && !canEdit)) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', p: 6 }}>
         <CircularProgress />
@@ -100,6 +126,7 @@ const BlendEditContentInner: React.FC<InnerProps> = ({ blendId }) => {
     );
   }
 
+  // 6. Main UI Render
   return (
     <Box
       sx={{
@@ -110,7 +137,7 @@ const BlendEditContentInner: React.FC<InnerProps> = ({ blendId }) => {
         overflow: 'hidden',
       }}
     >
-      {/* Sticky Top Region (Header + Actions Toolbar) */}
+      {/* Sticky Top Region */}
       <Box
         sx={{
           position: 'sticky',
@@ -126,6 +153,7 @@ const BlendEditContentInner: React.FC<InnerProps> = ({ blendId }) => {
         <EditorHeader
           code={data.code}
           blendId={blendId}
+          readOnly={readOnly}
           viewMode={viewMode}
           isMobile={isMobile}
           isSidebarCollapsed={isSidebarCollapsed}
@@ -137,11 +165,14 @@ const BlendEditContentInner: React.FC<InnerProps> = ({ blendId }) => {
         <EditorToolbar
           blendId={blendId}
           blendCode={data.code || ''}
+          blendStatus={data.status as BlendStatus}
           onActionSuccess={handleSendForApproval}
+          readOnly={readOnly}
+          isAuthor={isAuthor}
         />
       </Box>
 
-      {/* Independently Scrollable Editor Content */}
+      {/* Main Scrollable Content Area */}
       <Box
         sx={{
           flexGrow: 1,
@@ -153,6 +184,7 @@ const BlendEditContentInner: React.FC<InnerProps> = ({ blendId }) => {
           data={data}
           selectedSectionId={selectedSectionId}
           viewMode={viewMode}
+          readOnly={readOnly}
           onSectionDeleted={() => setSelectedSection('header')}
         />
       </Box>
@@ -161,7 +193,7 @@ const BlendEditContentInner: React.FC<InnerProps> = ({ blendId }) => {
 };
 
 // Route Parameter Validation Wrapper
-const BlendEditContent: React.FC = () => {
+const BlendContent: React.FC<{ readOnly: boolean }> = ({ readOnly }) => {
   const { id: rawId } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
@@ -190,11 +222,11 @@ const BlendEditContent: React.FC = () => {
     );
   }
 
-  return <BlendEditContentInner blendId={blendId} />;
+  return <BlendEditContentInner blendId={blendId} readOnly={readOnly} />;
 };
 
-export const BlendEditPage: React.FC = () => (
+export const BlendEditPage: React.FC<{ readOnly: boolean }> = ({ readOnly }) => (
   <BlendEditorProvider>
-    <BlendEditContent />
+    <BlendContent readOnly={readOnly} />
   </BlendEditorProvider>
 );

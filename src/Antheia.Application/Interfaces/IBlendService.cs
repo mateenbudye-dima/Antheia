@@ -29,6 +29,7 @@ public interface IBlendService
     Task<bool> DeleteEvaluationAsync(int evaluationId);
 
     Task<bool> SubmitAsync(int entityId, BlendStatus submittedFor);
-    Task<bool> ApproveAsync(int entityId, string? comments);
+    Task<bool> ApproveAsync(int entityId, string? comments, BlendStatus submittedFor);
     Task<bool> RejectAsync(int entityId, string? comments);
+    Task<bool> CancelSubmissionAsync(int entityId, string? comments);
 }

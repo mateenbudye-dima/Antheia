@@ -184,4 +184,18 @@ export const blendsApi = {
     });
     return response.data;
   },
+
+  rejectBlend : async (id: number, comments: string): Promise<{ message: string }> => {
+    const response = await apiClient.post(`/blends/${id}/reject`, JSON.stringify(comments), {
+      headers: { 'Content-Type': 'application/json' },
+    });
+    return response.data;
+  },
+
+  cancelSubmission : async (id: number, comments: string): Promise<{ message: string }> => {
+    const response = await apiClient.post(`/blends/${id}/cancel-submission`, JSON.stringify(comments), {
+      headers: { 'Content-Type': 'application/json' },
+    });
+    return response.data;
+  }
 };

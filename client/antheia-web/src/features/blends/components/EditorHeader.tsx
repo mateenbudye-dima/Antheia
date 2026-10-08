@@ -16,6 +16,7 @@ import { useBlendMutations } from '../hooks/useBlendMutations';
 export interface EditorHeaderProps {
   code?: string;
   blendId: number;
+  readOnly?: boolean;
   viewMode: 'split' | 'all';
   isMobile: boolean;
   isSidebarCollapsed: boolean;
@@ -30,6 +31,7 @@ export interface EditorHeaderProps {
 export const EditorHeader: React.FC<EditorHeaderProps> = ({
   code,
   blendId,
+  readOnly = false,
   viewMode,
   onBack,
   onViewModeChange,
@@ -57,9 +59,11 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
       {/* Center: Code + Global Status Badge */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
         <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-          {code ? `Editing: ${code}` : `Editing Blend #${blendId}`}
+          {readOnly
+            ? code ? `Blend Details: ${code}` : `Blend #${blendId} Details`
+            : code ? `Editing: ${code}` : `Editing Blend #${blendId}`}
         </Typography>
-        <StatusBadge status={saveStatus} />
+        {!readOnly && <StatusBadge status={saveStatus} />}
       </Box>
 
       {/* Right: View Mode Toggle */}
@@ -107,4 +111,3 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
     </Box>
   );
 };
-

@@ -8,10 +8,10 @@ namespace Dima.WorkFlowAuditMiddleware.Services
 {
     public interface IWorkflowService
     {
-        Task SubmitForApprovalAsync(string entityType, long entityId, Guid userId);
-        Task ApproveAsync(string entityType, long entityId, Guid reviewerId, string? comments);
+        Task SubmitForApprovalAsync(string entityType, long entityId, Guid userId, SubmittedFor submittedFor);
+        Task ApproveAsync(string entityType, long entityId, Guid reviewerId, SubmittedFor submittedFor, string? comments);
         Task RejectAsync(string entityType, long entityId, Guid reviewerId, string? comments);
-
+        Task CancelSubmissionAsync(string entityType, long entityId, Guid reviewerId, string? comments);
         // --- Audit Logs ---
         Task<PagedResult<AuditLog>> GetAuditLogsAsync(AuditLogFilterParameters filter);
         Task<AuditLog?> GetAuditLogByIdAsync(Guid id);

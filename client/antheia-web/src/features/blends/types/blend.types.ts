@@ -18,6 +18,22 @@ export const BLEND_STATUS_LABELS: Record<BlendStatus, string> = {
   [BlendStatus.Rejected]: 'Rejected',
 };
 
+export const getStatusColor = (status: BlendStatus): 'default' | 'info' | 'primary' | 'warning' | 'success' | 'error' => {
+  switch (status) {
+    case BlendStatus.Approved:
+    case BlendStatus.Reviewed:
+      return 'success';
+    case BlendStatus.SubmittedForReview:
+    case BlendStatus.SubmittedForApproval:
+      return 'info';
+    case BlendStatus.Rejected:
+      return 'error';
+    case BlendStatus.Draft:
+    default:
+      return 'warning';
+  }
+};
+
 export const SectionType = {
   Ingredients: 1,
   PreparationMethod: 2,
@@ -97,5 +113,8 @@ export interface FullBlendResponse {
   description: string;
   isPublished: boolean;
   sections: Section[];
+  status: BlendStatus;
+  createdBy: string;
+  updatedDate: string;
 }
 
