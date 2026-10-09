@@ -1,4 +1,5 @@
 import apiClient from "../../../shared/api/apiClient";
+import type { UserProfileDto } from "../../auth/types/auth";
 import type { BlendStatus, EvaluationItem, FullBlendResponse, Ingredient, IngredientType, PreparationMethod, SectionType } from "../types/blend.types";
 
 
@@ -12,8 +13,9 @@ export interface BlendItem {
   status: BlendStatus | null;
   isPublished: boolean | null;
   createdBy: string;
+  authorProfile: UserProfileDto;
 }
-
+  
 export interface BlendListFilters {
   search?: string;
   statuses?: BlendStatus[];

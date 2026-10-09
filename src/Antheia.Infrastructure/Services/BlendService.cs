@@ -15,19 +15,25 @@ namespace Antheia.Infrastructure.Services;
 public class BlendService : IBlendService
 {
     private readonly AntheiaDbContext _context;
+    private readonly Antheia.Infrastructure.Data.LegacyMembershipDbContext _legacyContext;
     private readonly ICurrentUserService _currentUser;
     private readonly ILogger<BlendService> _logger;
     private readonly IWorkflowService _workflowService;
+    private readonly Antheia.Application.Interfaces.IUserProfileCacheService _profileCache;
 
     public BlendService(AntheiaDbContext context, 
+                            Antheia.Infrastructure.Data.LegacyMembershipDbContext legacyContext,
                             IWorkflowService workflowService,
                             ICurrentUserService currentUser, 
-                            ILogger<BlendService> logger)
+                            ILogger<BlendService> logger,
+                            Antheia.Application.Interfaces.IUserProfileCacheService profileCache)
     {
         _context = context;
+        _legacyContext = legacyContext;
         _currentUser = currentUser;
         _logger = logger;
         _workflowService = workflowService;
+        _profileCache = profileCache;
     }
 
     // 1. Creates an initial draft blend record upon page initialization
@@ -405,9 +411,60 @@ public class BlendService : IBlendService
                     b.UpdatedDate,
                     b.IsPublished,
                     b.Status?? BlendStatus.Draft,
-                    b.CreatedBy
+                    b.CreatedBy,
+                    null
                 ))
                 .ToListAsync();
+
+            // Populate author profiles from cache (by userId). Use cache-aside factory that queries LegacyMembershipDbContext when missing.
+            var authorIds = items.Select(i => i.CreatedBy).Distinct().ToList();
+            var profileMap = new Dictionary<Guid, UserProfileDto?>();
+
+            foreach (var authorId in authorIds)
+            {
+                var profile = await _profileCache.GetOrSetUserProfileAsync(authorId, async () =>
+                {
+                    // Build profile similar to repository logic using legacy membership context
+                    var deptInfo = await (
+                        from du in _legacyContext.DepartmentUsers
+                        join d in _legacyContext.Departments on du.DepartmentId equals d.DepartmentId
+                        join org in _legacyContext.Organizations on d.OrganizationId equals org.OrganizationId
+                        where du.UserId == authorId && du.IsActive && d.IsActive && org.IsActive
+                        select new
+                        {
+                            DepartmentId = d.DepartmentId,
+                            DepartmentName = d.DepartmentName,
+                            OrganizationId = d.OrganizationId,
+                            OrganizationName = org.OrganizationName
+                        }
+                    ).FirstOrDefaultAsync();
+
+                    var displayName = await (
+                        from uc in _legacyContext.UserContacts
+                        join ci in _legacyContext.ContactInfos on uc.ContactId equals ci.ContactId
+                        where uc.UserId == authorId && uc.IsActive
+                        select (ci.FirstName + " " + ci.LastName)
+                    ).FirstOrDefaultAsync();
+
+                    var user = await _legacyContext.Users.AsNoTracking().Where(u => u.UserId == authorId).Select(u => new { u.UserName }).FirstOrDefaultAsync();
+                    if (user == null) return null;
+
+                    return new UserProfileDto(
+                        authorId,
+                        user.UserName,
+                        displayName ?? user.UserName,
+                        deptInfo?.DepartmentId,
+                        deptInfo?.DepartmentName,
+                        deptInfo?.OrganizationId ?? (short)0,
+                        deptInfo?.OrganizationName
+                    );
+                });
+
+                profileMap[authorId] = profile;
+            }
+
+            // Attach profiles to items
+            items = items.Select(i => new BlendListItemDto(i.BlendId, i.Code, i.TrialNumber, i.Objective, i.UpdatedDate, i.IsPublished, i.Status, i.CreatedBy, profileMap.GetValueOrDefault(i.CreatedBy))).ToList();
 
             _logger.LogInformation(
                 "GetBlendListAsync: returning {Count} of {TotalCount} blends for Org:{OrgId} on page {Page}",

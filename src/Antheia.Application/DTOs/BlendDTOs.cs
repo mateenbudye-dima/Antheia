@@ -51,7 +51,8 @@ public record BlendListItemDto(
     DateTime UpdatedDate,
     bool? IsPublished,
     BlendStatus Status,
-    Guid CreatedBy
+    Guid CreatedBy,
+    Antheia.Application.DTOs.UserProfileDto? AuthorProfile
 );
 
 public record PagedBlendListDto(

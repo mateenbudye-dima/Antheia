@@ -26,8 +26,14 @@ public static class DependencyInjection
             ?? throw new InvalidOperationException("Connection string 'AntheiaConnection' not found.");
 
         // Database Context
-        services.AddDbContext<LegacyMembershipDbContext>(options =>
-            options.UseSqlServer(legacyConnectionString));
+        // Register an interceptor for cache invalidation and add it to DbContext
+        services.Configure<UserCacheOptions>(configuration.GetSection("UserCache"));
+        services.AddSingleton<UserProfileCacheService>();
+        services.AddSingleton<UserCacheInvalidationInterceptor>();
+
+        services.AddDbContext<LegacyMembershipDbContext>((serviceProvider, options) =>
+            options.UseSqlServer(legacyConnectionString)
+                   .AddInterceptors(serviceProvider.GetRequiredService<UserCacheInvalidationInterceptor>()));
 
         // Add Antheia Application DbContext
         services.AddDbContext<AntheiaDbContext>((serviceProvider, options) =>
@@ -44,8 +50,20 @@ public static class DependencyInjection
 
         services.AddHttpContextAccessor();
 
+        // Add StackExchange Redis distributed cache (configuration: Redis:Configuration)
+        var redisConfiguration = configuration.GetValue<string>("Redis:Configuration") ?? "localhost:6379";
+        var redisInstance = configuration.GetValue<string>("Redis:InstanceName") ?? "Antheia:";
+        services.AddStackExchangeRedisCache(options =>
+        {
+            options.Configuration = redisConfiguration;
+            options.InstanceName = redisInstance;
+        });
+
         // 2. Repositories
         services.AddScoped<IUserRepository, UserRepository>();
+
+        // 3. Caching - user cache services
+        services.AddSingleton<IUserProfileCacheService>(sp => sp.GetRequiredService<UserProfileCacheService>());
 
         // 3. Security & Infrastructure Utilities
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();

@@ -6,6 +6,16 @@ export interface User {
   orgId: number;
 }
 
+export interface UserProfileDto {
+  userId: string;
+  userName: string;
+  displayName: string;
+  departmentId?: number;
+  departmentName?: string;
+  OrganizationId:number;
+  OrganizationName:string;
+};
+
 export interface LoginRequest {
   username: string;
   password: string;

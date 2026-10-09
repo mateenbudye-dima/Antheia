@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Security.Cryptography.Pkcs;
 using System.Text;
 
 namespace Antheia.Infrastructure.Data
@@ -26,6 +27,10 @@ namespace Antheia.Infrastructure.Data
         public virtual DbSet<RolePrivilege> RolePrivileges { get; set; }
 
         public virtual DbSet<DepartmentUser> DepartmentUsers { get; set; }
+
+        public virtual DbSet<ContactInfo> ContactInfos { get; set; }
+
+        public virtual DbSet<UserContact> UserContacts { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -212,6 +217,95 @@ namespace Antheia.Infrastructure.Data
                     .HasForeignKey(d => d.DepartmentId)
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("FK_Users_DepartmentRecord");
+            });
+
+            modelBuilder.Entity<ContactInfo>(entity =>
+            {
+                entity.HasKey(e => e.ContactId).HasName("PK_Contact_ContactID");
+
+                entity.ToTable("ContactInfo", "Person");
+
+                entity.Property(e => e.Avatar)
+                    .HasMaxLength(250)
+                    .IsUnicode(false);
+                entity.Property(e => e.BirthDate).HasColumnType("smalldatetime");
+                entity.Property(e => e.CreatedDate).HasColumnType("smalldatetime");
+                entity.Property(e => e.EmailAddress)
+                    .HasMaxLength(50)
+                    .IsUnicode(false);
+                entity.Property(e => e.ExperienceSpecifiedOn).HasColumnType("smalldatetime");
+                entity.Property(e => e.Fax)
+                    .HasMaxLength(25)
+                    .IsUnicode(false);
+                entity.Property(e => e.FirstName)
+                    .HasMaxLength(50)
+                    .IsUnicode(false);
+                entity.Property(e => e.HomePhone)
+                    .HasMaxLength(25)
+                    .IsUnicode(false);
+                entity.Property(e => e.ImageUrl)
+                    .HasMaxLength(250)
+                    .IsUnicode(false);
+                entity.Property(e => e.IsActive)
+                    .HasComment("0=N 1=Y")
+                    .HasDefaultValue(true, "DF_Contact_IsActive");
+                entity.Property(e => e.LastName)
+                    .HasMaxLength(50)
+                    .IsUnicode(false);
+                entity.Property(e => e.MaritalStatusId).HasDefaultValue((byte)0, "DF_Contact_MaritalStatus");
+                entity.Property(e => e.MiddleName)
+                    .HasMaxLength(50)
+                    .IsUnicode(false);
+                entity.Property(e => e.MobilePhone)
+                    .HasMaxLength(25)
+                    .IsUnicode(false);
+                entity.Property(e => e.Qualification)
+                    .HasMaxLength(50)
+                    .IsUnicode(false);
+                entity.Property(e => e.SkypeId)
+                    .HasMaxLength(25)
+                    .IsUnicode(false);
+                entity.Property(e => e.Suffix)
+                    .HasMaxLength(10)
+                    .IsUnicode(false);
+                entity.Property(e => e.Title)
+                    .HasMaxLength(8)
+                    .IsUnicode(false);
+                entity.Property(e => e.UpdatedDate).HasColumnType("smalldatetime");
+                entity.Property(e => e.WeChatId)
+                    .HasMaxLength(25)
+                    .IsUnicode(false);
+                entity.Property(e => e.WhatsappNumber)
+                    .HasMaxLength(25)
+                    .IsUnicode(false);
+                entity.Property(e => e.WorkPhone)
+                    .HasMaxLength(25)
+                    .IsUnicode(false);
+            });
+
+            modelBuilder.Entity<UserContact>(entity =>
+            {
+                entity.HasKey(e => new { e.UserId, e.ContactId });
+
+                entity.ToTable("Record", "Person");
+
+                entity.Property(e => e.AccessCode)
+                    .HasMaxLength(10)
+                    .IsUnicode(false);
+                entity.Property(e => e.AccessCodeExpirydate).HasColumnType("datetime");
+                entity.Property(e => e.CreatedDate).HasColumnType("smalldatetime");
+                entity.Property(e => e.LoginUserIp)
+                    .HasMaxLength(20)
+                    .IsUnicode(false)
+                    .HasColumnName("LoginUserIP");
+                entity.Property(e => e.PasswordResetOn).HasColumnType("smalldatetime");
+                entity.Property(e => e.Status).HasMaxLength(1000);
+                entity.Property(e => e.UpdatedDate).HasColumnType("smalldatetime");
+
+                entity.HasOne(d => d.Contact).WithMany(p => p.UserContacts)
+                    .HasForeignKey(d => d.ContactId)
+                    .OnDelete(DeleteBehavior.ClientSetNull)
+                    .HasConstraintName("FK_Record_ContactInfo");
             });
 
         }

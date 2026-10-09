@@ -27,6 +27,8 @@ public class AuthService : IAuthService
 
             var user = await _userRepository.GetUserAuthDataByUsernameAsync(request.Username);
 
+            var userProfile = await _userRepository.GetUserProfileByUsernameAsync(request.Username); // Preload profile for caching
+
             // Verify membership status
             if (user == null)
             {

@@ -8,5 +8,6 @@ namespace Antheia.Infrastructure.Repositories
     public interface IUserRepository
     {
         Task<UserAuthData?> GetUserAuthDataByUsernameAsync(string username);
+        Task<UserProfileDto?> GetUserProfileByUsernameAsync(string username);
     }
 }

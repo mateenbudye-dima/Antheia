@@ -134,6 +134,11 @@ export const BlendListPage: React.FC = () => {
         ),
       },
       {
+        key: 'authorProfile',
+        label: 'Author',
+        render: (blend) => blend.authorProfile?.displayName || 'Unknown Author',
+      },
+      {
         key: 'updatedDate',
         label: 'Updated Date',
         render: (blend) => new Date(blend.updatedDate).toLocaleDateString(),

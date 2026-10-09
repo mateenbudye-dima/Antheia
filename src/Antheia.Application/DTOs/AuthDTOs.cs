@@ -20,4 +20,15 @@ namespace Antheia.Application.DTOs
         List<string> Roles,
         List<int> Privileges
     );
+
+    // Lightweight profile DTO for caching display-oriented user data
+    public record UserProfileDto(
+        Guid UserId,
+        string UserName,
+        string DisplayName,
+        int? DepartmentId,
+        string? DepartmentName,
+        short OrganizationId,
+        string? OrganizationName
+    );
 }
